@@ -44,6 +44,10 @@ fi
 
 echo "--- INFO:   Using compiler command ''$compiler''. ---"
 
+if "$compiler" --version 2>&1 >/dev/null; then
+  echo '--- INFO:   compiler version report: ---'
+  "$compiler" --version 2>&1 | grep -v '^$' | sed -e 's/^/--- INFO:     /' -e 's/$/ ---/'
+fi
 
 
 # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output to this pathname"
