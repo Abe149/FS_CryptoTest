@@ -112,6 +112,10 @@ descriptive_basename="$descriptive_basename"___explicit_compiler_flags="$flags" 
 echo "DEBUG 4: descriptive_basename=''$descriptive_basename''"
 descriptive_basename=`sanitize_filename "$descriptive_basename" ' ' _ '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___` # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
 echo "DEBUG 5: descriptive_basename=''$descriptive_basename''"
+caller=`ps -o comm "$PPID" | tail -n 1`
+descriptive_basename="$descriptive_basename"___caller_of_compile.sh="$caller"
+echo "DEBUG 6: descriptive_basename=''$descriptive_basename''"
+
 target_with_descriptive_name="$target_directory"/"$descriptive_basename"
 
 # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output to this pathname"
