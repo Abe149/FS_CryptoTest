@@ -13,16 +13,21 @@ fi
 echo "--- INFO: about to list the old executable, if it exists ---"
 ls -l "$2"
 
+is_executable_and_not_a_directory() { # for DRY
+  test -x "$1" -a ! -d "$1"
+  return $?
+}
+
 compiler=`which "$3"`
-if test \( -z "$compiler" \) -o ! \( -x "$compiler" -a ! -d "$compiler" \); then # if the alleged compiler arg. is not provided, or points to something not executable or a directory
-  echo '--- INFO:   Going to try to autodetect the C++ compiler command. ---'
-else
+if test -n "$compiler" && is_executable_and_not_a_directory "$compiler"; then # if the alleged compiler arg. is not provided, or points to something not executable or a directory
   echo "--- INFO:   Using provided compiler command ''$3'', found at ''$compiler''. ---"
+else
+  echo '--- INFO:   Going to try to autodetect the C++ compiler command. ---'
 fi
 
 # check that by now "$compiler" is valid, and "die" if it isn`t
 if test \( -z "$compiler" \) -o ! \( -x "$compiler" -a ! -d "$compiler" \); then
-  echo "--- ERROR: No valid compiler command found at ''$compiler''.  Aborting. ---"
+  echo "--- ERROR:  No valid compiler command found at ''$compiler''.  Aborting. ---"
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
