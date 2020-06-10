@@ -23,10 +23,21 @@ if test -n "$compiler" && is_executable_and_not_a_directory "$compiler"; then # 
   echo "--- INFO:   Using provided compiler command ''$3'', found at ''$compiler''. ---"
 else
   echo '--- INFO:   Going to try to autodetect the C++ compiler command. ---'
+  old_compiler_command="$compiler"
+  for alleged_compiler in c++ CC g++ clang++; do
+    alleged_compiler_fullPath=`which $alleged_compiler`
+    if is_executable_and_not_a_directory "$alleged_compiler_fullPath"; then
+      compiler="$alleged_compiler_fullPath"
+      break
+    fi
+  done
+  if [ "$compiler" != "$old_compiler_command" ]; then
+    echo "--- INFO:   Auto-chose ''$compiler'' as the compiler command to use. ---"
+  fi
 fi
 
 # check that by now "$compiler" is valid, and "die" if it isn`t
-if test \( -z "$compiler" \) -o ! \( -x "$compiler" -a ! -d "$compiler" \); then
+if ! is_executable_and_not_a_directory "$compiler"; then
   echo "--- ERROR:  No valid compiler command found at ''$compiler''.  Aborting. ---"
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
