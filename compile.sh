@@ -20,10 +20,28 @@ fi
 echo "--- INFO:   About to list the pre-compilation executable, if it exists ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
 echo "--- INFO:     RESULT: OLD EXECUTABLE: `ls -l "$2" 2>&1` ---"
 
+
+
+### --- vvv --- functions --- vvv --- ###
+
 is_executable_and_not_a_directory() { # for DRY
   test -x "$1" -a ! -d "$1"
   return $?
 }
+
+sanitize_filename() {
+  filename="$1"
+  shift
+  while [ $# -ge 2 ]; do
+    filename=`echo "$filename" | sed "s/\$1/$2/g"`
+    shift 2
+  done
+  echo "$filename"
+}
+
+### --- ^^^ --- functions --- ^^^ --- ###
+
+
 
 # reminder: due to the way I am using "sed" 2 lines from here, don`t _ever_ put an ASCII slash in "COMPILER_INPUT_PREFIX"!
 COMPILER_INPUT_PREFIX=--compiler_command=
@@ -78,10 +96,29 @@ else
 fi
 echo   "--- INFO:   Using compiler flags ''$flags''."
 
+
+echo "DEBUG 1: target_with_descriptive_name=''$target_with_descriptive_name''"
+target_with_descriptive_name="$2"___compiler_driver_basename=`basename "$compiler_command"`
+echo "DEBUG 2: target_with_descriptive_name=''$target_with_descriptive_name''"
+if "$compiler_command" --version 2>&1 >/dev/null; then # does it "understand" "--version"?  if not, we don`t want an extraneous "___" at the end of the target`s filename
+  compiler_version_first_line=`"$compiler_command" --version 2>&1 | head -n 1`
+  target_with_descriptive_name=`echo "$target_with_descriptive_name"___compiler_version=$compiler_version_first_line`
+echo "DEBUG 3: target_with_descriptive_name=''$target_with_descriptive_name''"
+  target_with_descriptive_name=`sanitize_filename "$target_with_descriptive_name" ' ' _ '*' ___ASTERISK___ '?' ___QUESTION___`
+echo "DEBUG 4: target_with_descriptive_name=''$target_with_descriptive_name''"
+echo ===
+sanitize_filename "$target_with_descriptive_name" ' ' _ '*' ___ASTERISK___ '?' ___QUESTION___
+echo ===
+fi
+
 # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output to this pathname"
 echo '--- INFO:   About to execute "'"$compiler_command"\" \"$1\" -o \"$2\" ---
-"$compiler_command" "$1" -o "$2"
+"$compiler_command" "$1" -o "$target_with_descriptive_name"
 echo "--- INFO:     RESULT: Compiler exit/result code: $? ---"
 
 echo "--- INFO:   About to list the post-compilation executable ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
-echo "--- INFO:     RESULT: NEW EXECUTABLE: `ls -l "$2" 2>&1` ---"
+echo "--- INFO:     RESULT: NEW EXECUTABLE: `ls -l "$target_with_descriptive_name" 2>&1` ---"
+# using a symbolic link here should be at-least-mostly-OK, since we are forcing symlink regeneration upon recompilation; using a symlink for this but _not_ doing the forcing part might screw up Make`s ability to detect that the program needs to be recompiled: Make might "think" the program should _always_ be recompiled, i.e. even though the source code hasn`t changed, b/c only the "real executable" had gotten an updated timestamp upon the last recompilation [i.e. the symlink had _not_ been updated at that time]
+cd `dirname "$2"`
+ln -f -s "`basename "$target_with_descriptive_name"`" "`basename "$2"`"
+cd - >/dev/null
