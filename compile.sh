@@ -1,4 +1,11 @@
 #!/usr/bin/env sh
+
+### --- vvv --- "tuneables" --- vvv --- ###
+FLAGS_TO_USE_WHEN_COMPILER_SEEMS_COMPATIBLE_WITH_GCC_FLAGS=-O2
+### --- ^^^ --- "tuneables" --- ^^^ --- ###
+
+
+
 echo "--- INFO: in ''$0'': ---"
 echo "--- INFO:   ''\$@'' :[$@] ---"
 echo "--- INFO:   ''\$1'' :''$1'' ---" # source
@@ -10,7 +17,7 @@ if [ -z "$1" -o -z "$2" ]; then
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
-echo "--- INFO:   About to list the old executable, if it exists ---"
+echo "--- INFO:   About to list the pre-compilation executable, if it exists ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
 echo "--- INFO:     RESULT: OLD EXECUTABLE: `ls -l "$2" 2>&1` ---"
 
 is_executable_and_not_a_directory() { # for DRY
@@ -60,17 +67,21 @@ fi
 flags="$4"
 if test -z "$flags"; then
   echo '--- INFO:   Going to try to autodetect suitable compiler flags. ---'
-  if "$compiler_command" --version 2>&1 | grep -q 'GCC|clang'; then
-    echo WIP1
+  if "$compiler_command" --version 2>&1 | grep -q -E '(GCC|clang)'; then
+    echo '--- INFO:     Detected a compiler driver that _is_ compatible with GCC compiler flags. ---'
+    flags="$FLAGS_TO_USE_WHEN_COMPILER_SEEMS_COMPATIBLE_WITH_GCC_FLAGS"
   else
-    echo WIP2
+    echo '--- INFO:     Detected a compiler driver that is _not_ compatible with GCC compiler flags. ---'
   fi
+else
+  echo "--- INFO:   Using provided compiler flags ''$flags''."
 fi
+echo   "--- INFO:   Using compiler flags ''$flags''."
 
 # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output to this pathname"
 echo '--- INFO:   About to execute "'"$compiler_command"\" \"$1\" -o \"$2\" ---
 "$compiler_command" "$1" -o "$2"
 echo "--- INFO:     RESULT: Compiler exit/result code: $? ---"
 
-echo "--- INFO:   About to list the new executable ---"
+echo "--- INFO:   About to list the post-compilation executable ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
 echo "--- INFO:     RESULT: NEW EXECUTABLE: `ls -l "$2" 2>&1` ---"
