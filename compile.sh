@@ -49,9 +49,19 @@ if "$compiler" --version 2>&1 >/dev/null; then
   "$compiler" --version 2>&1 | grep -v '^$' | sed -e 's/^/--- INFO:     /' -e 's/$/ ---/'
 fi
 
+flags="$4"
+if test -z "$flags"; then
+  echo '--- INFO:   Going to try to autodetect suitable compiler flags. ---'
+  if "$compiler" --version 2>&1 | grep -q 'GCC|clang'; then
+    echo WIP1
+  else
+    echo WIP2
+  fi
+fi
 
 # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output to this pathname"
-$compiler "$1" -o "$2"
+echo '--- INFO:   About to execute "'"$compiler"\" \"$1\" -o \"$2\" ---
+"$compiler" "$1" -o "$2"
 echo "Compiler exit/result code: $?"
 
 echo "--- INFO: about to list the new executable ---"

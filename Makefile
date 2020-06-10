@@ -10,16 +10,6 @@ $(REAL_BUILD_DIR):
 build_dir.: $(REAL_BUILD_DIR)
 	ln -fs $(REAL_BUILD_DIR) .
 
-# ifndef CXX
-#   CXX=`which CC`
-# endif
-# ifndef CXX
-#   CXX=`which g++`
-# endif
-# ifndef CXX
-#   CXX=`which clang++`
-# endif
-
 CXX_IS_COMPATIBLE_WITH_GCC_FLAGS=`$(CXX) --version | grep -q 'GCC|clang' && echo yes`
 
 BASE_BASENAME=FS_CryptoTest
