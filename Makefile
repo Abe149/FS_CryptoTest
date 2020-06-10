@@ -1,15 +1,3 @@
-# ifeq ($(CXX),)
-ifndef CXX
-  CXX=`which CC`
-endif
-ifndef CXX
-  CXX=`which g++`
-endif
-ifndef CXX
-  CXX=`which clang++`
-endif
-echo CXX=$(CXX)
-
 all: build_dir./FS_CryptoTest
 
 REAL_BUILD_DIR=___not_in_Git/build_dir. # important: do _NOT_ add a trailing slash here!
@@ -20,10 +8,23 @@ $(REAL_BUILD_DIR):
 build_dir.: $(REAL_BUILD_DIR)
 	ln -fs $(REAL_BUILD_DIR) .
 
-SOURCE_FILE=FS_CryptoTest.cpp
+ifndef CXX
+  CXX=`which CC`
+endif
+ifndef CXX
+  CXX=`which g++`
+endif
+ifndef CXX
+  CXX=`which clang++`
+endif
 
-build_dir./FS_CryptoTest: build_dir. $(SOURCE_FILE)
-	$(CXX) $(CXXFLAGS) $(SOURCE_FILE) -o build_dir./FS_CryptoTest # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output pathname"
+BASE_BASENAME=FS_CryptoTest
+EXECUTABLE_BASENAME=$(BASE_BASENAME) # For flexibility, e.g. in case this code will -- in the future -- support generating e.g. "FS_CryptoTest.exe"
+SOURCE_FILENAME=$(BASE_BASENAME).cpp
+
+build_dir./FS_CryptoTest: build_dir. $(SOURCE_FILENAME)
+	@echo INFO: CXX=$(CXX)
+	$(CXX) $(CXXFLAGS) $(SOURCE_FILENAME) -o build_dir./$(EXECUTABLE_BASENAME) # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output pathname"
 
 
 
