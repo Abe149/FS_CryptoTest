@@ -99,8 +99,11 @@ fi
 echo   "--- INFO:   Using compiler flags ''$flags''."
 
 
-target_directory="`dirname "$2"`"
+real_target_directory="`dirname "$2"`"
+target_directory_for_new_files="`dirname "$2"`"/new/
 original_target_basename="`basename "$2"`"
+
+mkdir -p "$target_directory_for_new_files" || exit 1
 
 descriptive_basename="$original_target_basename"
 # echo "DEBUG 2: descriptive_basename=''$descriptive_basename''"
@@ -126,17 +129,27 @@ descriptive_basename="`sanitize_filename "$descriptive_basename" '\=' Ôºù '(' Ôº
 fi
 echo "DEBUG 8: descriptive_basename=''$descriptive_basename''"
 
-target_with_descriptive_name="$target_directory"/"$descriptive_basename"
+target_with_descriptive_name="$target_directory_for_new_files"/"$descriptive_basename"
 
 # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output to this pathname"
-echo '--- INFO:   About to execute "'"$compiler_command"\" \"$1\" -o \"$2\" ---
+echo '--- INFO:   About to execute "'"$compiler_command"\" \"$1\" -o \"$target_with_descriptive_name\" ---
 "$compiler_command" "$1" -o "$target_with_descriptive_name"
 echo "--- INFO:     RESULT: Compiler exit/result code: $? ---"
 
-echo "--- INFO:   About to list the post-compilation executable ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
+echo "--- INFO:   About to list the post-compilation executable [definitely new] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
 echo "--- INFO:     RESULT: NEW EXECUTABLE: `ls -l "$target_with_descriptive_name" 2>&1` ---"
-# using a symbolic link here should be at-least-mostly-OK, since we are forcing symlink regeneration upon recompilation; using a symlink for this but _not_ doing the forcing part might screw up Make`s ability to detect that the program needs to be recompiled: Make might "think" the program should _always_ be recompiled, i.e. even though the source code hasn`t changed, b/c only the "real executable" had gotten an updated timestamp upon the last recompilation [i.e. the symlink had _not_ been updated at that time]
-cd `dirname "$2"`
+
+### overwrite the old executable only if it is different from the new one; compiling in this "careful" way preserves the old timestamp of the old executable if/when the new executable file`s "data fork" is the same as that of the old one ###
+cd "$target_directory_for_new_files"
+cmp -s "$descriptive_basename" ../"$descriptive_basename" || mv -f "$descriptive_basename" ../
+cd - >/dev/null
+
+echo "--- INFO:   About to list the post-compilation executable [possibly ''old'' if the new one was byte-for-byte identical] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
+echo "--- INFO:     RESULT: CURRENT EXECUTABLE: `ls -l "$real_target_directory/$descriptive_basename" 2>&1` ---"
+
+### --- add/refresh the symlink --- ###
+### using a symbolic link here should be at-least-mostly-OK, since we are forcing symlink regeneration upon recompilation; using a symlink for this but _not_ doing the forcing part might screw up Make`s ability to detect that the program needs to be recompiled: Make might "think" the program should _always_ be recompiled, i.e. even though the source code hasn`t changed, b/c only the "real executable" had gotten an updated timestamp upon the last recompilation [i.e. the symlink had _not_ been updated at that time]
+cd "$real_target_directory"
 # ln -f -s "`basename "$target_with_descriptive_name"`" "`basename "$2"`" # preserving this line in case its replacement on the next line ever turns out to be wrong
   ln -f -s "$descriptive_basename" "$original_target_basename"
 cd - >/dev/null
