@@ -1,9 +1,17 @@
 #!/usr/bin/env sh
 echo "--- INFO: in ''$0'': ---"
 echo "--- INFO:   ''\$@'' :[$@] ---"
-echo "--- INFO:   ''\$1'' :''$1'' ---"
-echo "--- INFO:   ''\$2'' :''$2'' ---"
-echo "--- INFO:   ''\$3'' :''$3'' ---"
+echo "--- INFO:   ''\$1'' :''$1'' ---" # source
+echo "--- INFO:   ''\$2'' :''$2'' ---" # destination
+echo "--- INFO:   ''\$3'' :''$3'' ---" # alleged compiler-driver command
+echo "--- INFO:   ''\$4'' :''$4'' ---" # non-default flags, if any
+
+if [ -z "$1" -o -z "$2" ]; then
+  exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
+fi
+
+echo "--- INFO: about to list the old executable, if it exists ---"
+ls -l "$2"
 
 compiler=`which "$3"`
 if test \( -z "$compiler" \) -o ! \( -x "$compiler" -a ! -d "$compiler" \); then # if the alleged compiler arg. is not provided, or points to something not executable or a directory
@@ -12,11 +20,19 @@ else
   echo "--- INFO:   Using provided compiler command ''$3'', found at ''$compiler''. ---"
 fi
 
+# check that by now "$compiler" is valid, and "die" if it isn`t
 if test \( -z "$compiler" \) -o ! \( -x "$compiler" -a ! -d "$compiler" \); then
   echo "--- ERROR: No valid compiler command found at ''$compiler''.  Aborting. ---"
-  exit 1 # TO DO: add anti-sourcing protection.
+  exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
-# embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output pathname"
+echo "--- INFO:   Using compiler command ''$compiler''. ---"
+
+
+
+# embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output to this pathname"
 $compiler "$1" -o "$2"
 echo "Compiler exit/result code: $?"
+
+echo "--- INFO: about to list the new executable ---"
+ls -l "$2"
