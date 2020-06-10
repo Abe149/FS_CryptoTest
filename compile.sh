@@ -33,7 +33,7 @@ sanitize_filename() {
   filename="$1"
   shift
   while [ $# -ge 2 ]; do
-    echo "DEBUG: “$1” “$2” “$filename”" > /dev/stderr
+    # echo "DEBUG: “$1” “$2” “$filename”" > /dev/stderr
     filename=`echo "$filename" | sed s="$1"="$2"=g` # instead of using '/' in the "sed" script here, we _must_ use a char. that will _never_ be "sanitized out" -- _or_ used in the replacement string!  oof.  maybe '=' will work well.  :-P
     shift 2
   done
@@ -102,13 +102,13 @@ target_directory="`dirname "$2"`"
 original_target_basename="`basename "$2"`"
 
 descriptive_basename="$original_target_basename"___compiler_driver_basename=`basename "$compiler_command"`
-echo "DEBUG 2: descriptive_basename=''$descriptive_basename''"
+# echo "DEBUG 2: descriptive_basename=''$descriptive_basename''"
 if "$compiler_command" --version 2>&1 >/dev/null; then # does it "understand" "--version"?  if not, we don`t want an extraneous "___" at the end of the target`s filename
   compiler_version_first_line=`"$compiler_command" --version 2>&1 | head -n 1`
   descriptive_basename="$descriptive_basename"___compiler_version="$compiler_version_first_line"
-  echo "DEBUG 3: descriptive_basename=''$descriptive_basename''"
+  # echo "DEBUG 3: descriptive_basename=''$descriptive_basename''"
   descriptive_basename=`sanitize_filename "$descriptive_basename" ' ' _ '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___` # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
-  echo "DEBUG 4: descriptive_basename=''$descriptive_basename''"
+  # echo "DEBUG 4: descriptive_basename=''$descriptive_basename''"
 fi
 target_with_descriptive_name="$target_directory"/"$descriptive_basename"
 
