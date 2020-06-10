@@ -33,7 +33,7 @@ build_dir./FS_CryptoTest: build_dir. $(SOURCE_FILENAME)
 #	echo INFO: CXX=$(CXX)
 #	echo INFO: CXX_IS_COMPATIBLE_WITH_GCC_FLAGS=$(CXX_IS_COMPATIBLE_WITH_GCC_FLAGS)
 	# $(CXX) $(CXXFLAGS) $(SOURCE_FILENAME) -o build_dir./$(EXECUTABLE_BASENAME) # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output pathname"
-	./compile.sh $(SOURCE_FILENAME) build_dir./$(EXECUTABLE_BASENAME)
+	./compile.sh $(SOURCE_FILENAME) build_dir./$(EXECUTABLE_BASENAME) $(CXX) # CXX comes _last_ here on _purpose_ in case it`s not set
 
 
 
