@@ -17,7 +17,7 @@ REAL_BUILD_DIR=___not_in_Git/build_dir. # important: do _NOT_ add a trailing sla
 $(REAL_BUILD_DIR):
 	mkdir -p $@
 
-build_dir.: ___not_in_Git/build_dir. # TO DO: more DRY
+build_dir.: $(REAL_BUILD_DIR)
 	ln -fs $(REAL_BUILD_DIR) .
 
 SOURCE_FILE=FS_CryptoTest.cpp
