@@ -17,7 +17,8 @@ EXECUTABLE_BASENAME=$(BASE_BASENAME) # For flexibility, e.g. in case this code w
 SOURCE_FILENAME=$(BASE_BASENAME).cpp
 
 build_dir./FS_CryptoTest: build_dir. $(SOURCE_FILENAME)
-	./compile.sh $(SOURCE_FILENAME) build_dir./$(EXECUTABLE_BASENAME) $(CXX) $(CXXFLAGS) # CXX and CXXFLAGS come _last_ here on _purpose_ in case they are not set
+# CXX and CXXFLAGS come _last_ here on _purpose_ in case they are not set
+	./compile.sh $(SOURCE_FILENAME) build_dir./$(EXECUTABLE_BASENAME) --compiler_command=$(CXX) $(CXXFLAGS) 
 
 
 
