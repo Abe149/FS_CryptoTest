@@ -17,7 +17,7 @@ EXECUTABLE_BASENAME=$(BASE_BASENAME) # For flexibility, e.g. in case this code w
 SOURCE_FILENAME=$(BASE_BASENAME).cpp
 
 # build_dir./$(EXECUTABLE_BASENAME): build_dir. $(SOURCE_FILENAME)
-build_dir./$(EXECUTABLE_BASENAME): $(SOURCE_FILENAME) # removed "build_dir." from the list of prereq.s due to an apparent bug in GNU Make 3.81 [more documentation in a long comment, below]
+build_dir./$(EXECUTABLE_BASENAME): Makefile compile.sh $(SOURCE_FILENAME) # removed "build_dir." from the list of prereq.s due to an apparent bug in GNU Make 3.81 [more documentation in a long comment, below]
 #
 # CXX and CXXFLAGS come _last_ here on _purpose_ in case they are not set
 #
