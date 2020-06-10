@@ -2,6 +2,7 @@
 
 ### --- vvv --- "tuneables" --- vvv --- ###
 FLAGS_TO_USE_WHEN_COMPILER_SEEMS_COMPATIBLE_WITH_GCC_FLAGS=-O2
+ENABLE_UTF8_IN_FILENAMES=1
 ### --- ^^^ --- "tuneables" --- ^^^ --- ###
 
 
@@ -110,7 +111,7 @@ fi
 echo "DEBUG 3: descriptive_basename=''$descriptive_basename''"
 descriptive_basename="$descriptive_basename"___explicit_compiler_flags="$flags" # "explicit" as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
 echo "DEBUG 4: descriptive_basename=''$descriptive_basename''"
-descriptive_basename=`sanitize_filename "$descriptive_basename" ' ' _ '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___` # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
+descriptive_basename="`sanitize_filename "$descriptive_basename" ' ' _ '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___`" # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
 echo "DEBUG 5: descriptive_basename=''$descriptive_basename''"
 ### re the next 2 lines of code: this works well with GNU Make on Debian 7 ["<...>___caller_of_compile.sh=make"], but _badly_ with "pmake" [also on Debian 7]: "<...>___caller_of_compile.sh=sh"
 # caller=`ps -o comm "$PPID" | tail -n 1`
@@ -120,6 +121,10 @@ if is_executable_and_not_a_directory `which sha512sum`; then
   descriptive_basename="$descriptive_basename"___source_code_SHA512sum="`sha512sum "$1" | cut -f 1 -d ' '`"
 fi
 echo "DEBUG 7: descriptive_basename=''$descriptive_basename''"
+if [ -n "$ENABLE_UTF8_IN_FILENAMES" ] && [ "$ENABLE_UTF8_IN_FILENAMES" -gt 0 ]; then
+descriptive_basename="`sanitize_filename "$descriptive_basename" '\=' ＝ '(' （ ')' ）`"
+fi
+echo "DEBUG 8: descriptive_basename=''$descriptive_basename''"
 
 target_with_descriptive_name="$target_directory"/"$descriptive_basename"
 
