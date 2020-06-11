@@ -33,11 +33,17 @@ sanitize_filename() {
 
 stderr_echo "--- INFO: in ''$0'': ---"
 stderr_echo "--- INFO:   ''\$@'' :[$@] ---"
-stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: flags to use when [1] optional flags are _not_ provided _and_ [2] compiler seems compatible with GCC flags [in this position in the {list of args} so as to keep the others at [2, 3, 4] for backwards compatibility with how this code was originally written
+stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: (fallback) flags to use when [1] optional flags are _not_ provided _and_ [2] compiler seems compatible with GCC flags [in this position in the {list of args} so as to keep the others at [2, 3, 4] for backwards compatibility with how this code was originally written
 stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: base basename [_no_, I did _not_ just now stutter ;-)]
-stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # REQUIRED: alleged compiler-driver command
-stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: compiler flags and/or {source pathname [for SHA512 hashing]}
-stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: compiler flags and/or {source pathname [for SHA512 hashing]}
+stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # REQUIRED: "--name=value"-style arg.
+stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
+stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
+### "--name=value"-style arg.s supported:
+###   * "--compiler[_-]command="<...> : _MANDATORY_,
+###     which is why #3 [above] is "REQUIRED":
+###       at least one flexible-order arg. must occur [this bullet-point`s such arg.]
+###   * "--compiler[_-]flags="<...>
+###   * "--source[_-]pathname="<...> [for SHA512 hashing]
 
 if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
   stderr_echo "--- ERROR: not enough arg.s/param.s given to ''$0'': at least 3 required, 5 supported. ---"
@@ -46,24 +52,35 @@ fi
 
 flags_to_use_when_compiler_seems_compatible_with_GCC_flags="$1"
 
-# reminder: due to the way I am using "sed" 2 lines from here, don`t _ever_ put an ASCII slash in "COMPILER_INPUT_PREFIX"!
-COMPILER_INPUT_PREFIX=--compiler_command=
-alleged_compiler_command=
-if echo "$3" | grep -q "^$COMPILER_INPUT_PREFIX"; then
-  alleged_compiler_command=`echo "$3"| sed s/^$COMPILER_INPUT_PREFIX//`
-fi
-stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---" # reminder: IMPORTANT: in _this_ script, _all_ debug/info/test/whatever output _must_ _not_ go to std. _out_
+### reminder: due to the way I am using "sed" here,
+###           don`t _ever_ put an ASCII slash in _any_ of the values of the "<...>_INPUT_PREFIX" variables!
 
+alleged_compiler_command=
+COMPILER_INPUT_PREFIX='--compiler[_-]command='
+for a in "$3" "$4" "$5"; do
+  if echo "$a" | grep -q "^$COMPILER_INPUT_PREFIX"; then
+    alleged_compiler_command=`echo "$3"| sed s/^$COMPILER_INPUT_PREFIX//`
+    stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---" # reminder: IMPORTANT: in _this_ script, _all_ debug/info/test/whatever output _must_ _not_ go to std. _out_
+  fi
+done
 
 flags= # empty by default
 flags_have_been_explicitly_set=
-FLAGS_INPUT_PREFIX=--compiler_flags=
-alleged_compiler_command=
-for a in "$4" "$5"; do
-  if echo "$a" | grep -q "^$FLAGS_INPUT_PREFIX"; then
+FLAGS_INPUT_PREFIX='--compiler[_-]flags='
+for a in "$3" "$4" "$5"; do
+  if echo "$a" |   grep -q "^$FLAGS_INPUT_PREFIX"; then
     flags=`echo "$a"| sed s/^$FLAGS_INPUT_PREFIX//`
     stderr_echo "--- DEBUG:  requested compiler flags: flags=''$flags'' ---"
     flags_have_been_explicitly_set=1
+  fi
+done
+
+pathname= # empty by default
+PATHNAME_INPUT_PREFIX='--source[_-]pathname='
+for a in "$3" "$4" "$5"; do
+  if echo "$a" |      grep -q "^$PATHNAME_INPUT_PREFIX"; then
+    pathname=`echo "$a"| sed s/^$PATHNAME_INPUT_PREFIX//`
+    stderr_echo "--- DEBUG:  source-code pathname: ''$flags'' ---"
   fi
 done
 
