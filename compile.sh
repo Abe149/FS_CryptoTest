@@ -9,12 +9,13 @@ ENABLE_UTF8_IN_FILENAMES=1
 
 echo "--- INFO: in ''$0'': ---"
 echo "--- INFO:   ''\$@'' :[$@] ---"
-echo "--- INFO:   ''\$1'' :''$1'' ---" # source
-echo "--- INFO:   ''\$2'' :''$2'' ---" # destination
-echo "--- INFO:   ''\$3'' :''$3'' ---" # alleged compiler-driver command
-echo "--- INFO:   ''\$4'' :''$4'' ---" # non-default flags, if any
+echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: source
+echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: destination
+echo "--- INFO:   ''\$3'' :''$3'' ---" # REQUIRED: alleged compiler-driver command
+echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: non-default flags, if any
 
-if [ -z "$1" -o -z "$2" ]; then
+if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+  echo "--- ERROR: not enough arg.s/param.s given to ''$0''. ---"
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
