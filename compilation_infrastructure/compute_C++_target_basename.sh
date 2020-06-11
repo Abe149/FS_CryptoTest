@@ -38,6 +38,7 @@ stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # OPTIONAL: "--name=value"-style a
 stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # OPTIONAL: "--name=value"-style arg.
 stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
 stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
+stderr_echo "--- INFO:   ''\$6'' :''$6'' ---" # OPTIONAL: "--name=value"-style arg.
 ### "--name=value"-style arg.s supported:
 ###   * "--compiler[_-]command="<...> : _MANDATORY_,
 ###     which is why #3 [above] is "REQUIRED":
@@ -45,6 +46,9 @@ stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style a
 ###   * "--compiler[_-]flags="<...>
 ###   * "--source[_-]pathname="<...> [for SHA512 hashing]
 ###   * "--fallback_GCC-compatible_flags="<...>
+###   * "--disable_generation_of_UTF-8_in_computed_basename"
+###       only "disable _generation of_ <...>", i.e. not a point-blank "disable <...>",
+###       b/c a non-ASCII UTF-8 char. could still appear in the input _base_ basename
 
 if   echo "$1" | grep -q '^-'; then # the first CLI arg. starts with a '-'
   if echo "$1" | grep -Eiq '^(-h|--help)'; then # the first CLI arg. starts with a '-'
@@ -58,7 +62,7 @@ fi
 
 
 if [ -z "$1" ]; then
-  stderr_echo "--- ERROR: not enough arg.s/param.s given to ''$0'': at least 1 required, 5 supported. ---"
+  stderr_echo "--- ERROR: not enough arg.s/param.s given to ''$0'': at least 1 required, 6 supported. ---"
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
@@ -67,7 +71,7 @@ fi
 
 alleged_compiler_command=
 compiler_input_prefix='--compiler[_-]command='
-for a in "$2" "$3" "$4" "$5"; do
+for a in "$2" "$3" "$4" "$5" "$6"; do
   if echo "$a" | grep -q "^$compiler_input_prefix"; then
     alleged_compiler_command=`echo "$a"| sed s/^$compiler_input_prefix//`
     stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---" # reminder: IMPORTANT: in _this_ script, _all_ debug/info/test/whatever output _must_ _not_ go to std. _out_
@@ -77,7 +81,7 @@ done
 flags= # empty by default
 flags_have_been_explicitly_set=
 flags_input_prefix='--compiler[_-]flags='
-for a in "$2" "$3" "$4" "$5"; do
+for a in "$2" "$3" "$4" "$5" "$6"; do
   if echo "$a" |   grep -q "^$flags_input_prefix"; then
     flags=`echo "$a"| sed s/^$flags_input_prefix//`
     stderr_echo "--- DEBUG:  requested compiler flags: flags=''$flags'' ---"
@@ -87,7 +91,7 @@ done
 
 pathname= # empty by default
 pathname_input_prefix='--source[_-]pathname='
-for a in "$2" "$3" "$4" "$5"; do
+for a in "$2" "$3" "$4" "$5" "$6"; do
   if echo "$a" |      grep -q "^$pathname_input_prefix"; then
     pathname=`echo "$a"| sed s/^$pathname_input_prefix//`
     stderr_echo "--- DEBUG:  source-code pathname: ''$pathname'' ---"
@@ -96,10 +100,17 @@ done
 
 fallback_GCCcompatible_flags= # empty by default
 fallback_GCCcompatible_flags_input_prefix='--fallback_GCC-compatible_flags' # _intentionally_ no {'_' vs. '-'} flexibility on _this_ one
-for a in "$2" "$3" "$4" "$5"; do
+for a in "$2" "$3" "$4" "$5" "$6"; do
   if echo "$a" |      grep -q "^$fallback_GCCcompatible_flags_input_prefix"; then
     fallback_GCCcompatible_flags=`echo "$a"| sed s/^$fallback_GCCcompatible_flags_input_prefix//`
     stderr_echo "--- DEBUG:   fallback_GCCcompatible_flags=''$fallback_GCCcompatible_flags'' ---"
+  fi
+done
+
+for a in "$2" "$3" "$4" "$5" "$6"; do
+  if echo "$a" | grep -q '^--disable_generation_of_UTF-8_in_computed_basename$'; then
+    stderr_echo "--- DEBUG:   disabled UTF-8 [Unicode] generation/conversion ---"
+    ENABLE_UTF8_IN_FILENAMES=0
   fi
 done
 
@@ -150,7 +161,7 @@ if is_executable_and_not_a_directory `which sha512sum` && [ -r "$pathname" ]; th
 fi
 stderr_echo "DEBUG 7: descriptive_basename=''$descriptive_basename''"
 if [ -n "$ENABLE_UTF8_IN_FILENAMES" ] && [ "$ENABLE_UTF8_IN_FILENAMES" -gt 0 ]; then
-descriptive_basename="`sanitize_filename "$descriptive_basename" '\=' ＝ '(' （ ')' ）`"
+  descriptive_basename="`sanitize_filename "$descriptive_basename" '\=' ＝ '(' （ ')' ）`"
 fi
 stderr_echo "DEBUG 8: descriptive_basename=''$descriptive_basename''"
 
