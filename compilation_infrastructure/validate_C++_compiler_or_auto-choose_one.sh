@@ -29,7 +29,6 @@ test_alleged_Cxx_compiler() {
   cat << THE_END > "$test_file_base_pathname""$source_extension"
 #include <iostream>
 int main(){std::cout<<"Hello world [from a C++-_only_ -- i.e. _not_ also valid C -- program].\n";}
-
 THE_END
 
   # EMBEDDED ASSUMPTION on the next line: "-o" _always_ means "output to the following pathname"
