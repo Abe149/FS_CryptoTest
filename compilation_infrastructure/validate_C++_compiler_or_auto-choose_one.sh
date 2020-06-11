@@ -13,7 +13,9 @@ Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX() {
 test_alleged_Cxx_compiler() {
   ### <https://pubs.opengroup.org/onlinepubs/9699919799/utilities/date.html>
   ### the next line`s finely-tuned monstrosity is due to the lack of a suitable "make temporary file" shell API in POSIX version 2008 and later, and is carefully designed to avoid ASCII {spaces and colons}
-  test_file_base_pathname=/tmp/C++_compiler_validation_test_started_at___`date '+%a_%A_%b_%B_%C_%d_%H_%I_%j_%m_%M_%p_%S_%u_%U_%V_%w_%W_%y_%Y_%Z'`
+  prefix=/tmp/compiler-validation_test_files
+  mkdir -p $prefix || exit 1 # TO DO: add anti-sourcing protection
+  test_file_base_pathname=$prefix/C++_compiler_validation_test_started_at___`date '+%a_%A_%b_%B_%C_%d_%H_%I_%j_%m_%M_%p_%S_%u_%U_%V_%w_%W_%y_%Y_%Z'`
   sleep 1 # unfortunately, POSIX "date" doesn`t seem to provide a {milli/micro/nano}seconds percent-prefixed character API, so we need to make sure that subsequent calls to this function in the same execution don`t execute within the same second
 
   source_extension=.cpp
