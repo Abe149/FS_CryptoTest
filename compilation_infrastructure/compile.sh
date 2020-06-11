@@ -9,6 +9,7 @@ ENABLE_UTF8_IN_FILENAMES=1
 
 echo "--- INFO: in ''$0'': ---"
 echo "--- INFO:   ''\$@'' :[$@] ---"
+echo "--- INFO:   ''\$0'' :''$0'' ---"
 echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: source
 echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: destination
 echo "--- INFO:   ''\$3'' :''$3'' ---" # REQUIRED: alleged compiler-driver command
@@ -26,10 +27,13 @@ echo "--- INFO:     RESULT: OLD EXECUTABLE: `ls -l "$2" 2>&1` ---"
 
 ### --- vvv --- functions --- vvv --- ###
 
-is_executable_and_not_a_directory() { # for DRY
-  test -x "$1" -a ! -d "$1"
-  return $?
+Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX() {
+# ls -dl "$1" | sed 's/^.* -> //' # will fail _miserably_ when processing the valid input '.'
+  ls -dl "$1" | sed 's/.* //'     # will fail _miserably_ when there`s an ASCII space in the input
+  # re the preceding 2 lines of code [incl. 1 commented out]: herein, we seem to be damned if we do and damned if we don`t
 }
+
+. $(dirname "`Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX "$0"`")/shared_functions.sh
 
 sanitize_filename() {
   filename="$1"
