@@ -46,6 +46,17 @@ stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style a
 ###   * "--source[_-]pathname="<...> [for SHA512 hashing]
 ###   * "--fallback_GCC-compatible_flags="<...>
 
+if   echo "$1" | grep -q '^-'; then # the first CLI arg. starts with a '-'
+  if echo "$1" | grep -Eiq '^(-h|--help)'; then # the first CLI arg. starts with a '-'
+    echo 'WIP: help text yet to be written.'
+    exit 0 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
+  fi
+
+  ### the reason for the next line: it is an error to provide a non-recognized "-<...>" as the first arg. to this program.
+  exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
+fi
+
+
 if [ -z "$1" ]; then
   stderr_echo "--- ERROR: not enough arg.s/param.s given to ''$0'': at least 1 required, 5 supported. ---"
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
@@ -103,12 +114,13 @@ if [ -z "$flags_have_been_explicitly_set" ] || [ "$flags_have_been_explicitly_se
   stderr_echo '--- INFO:   Going to try to autodetect suitable compiler flags. ---'
   if "$compiler_command" --version 2>&1 | grep -q -E '(GCC|clang)'; then
     stderr_echo '--- INFO:     Detected a compiler driver that _is_ compatible with GCC compiler flags. ---'
+    stderr_echo "--- INFO:     Using fallback compiler flags ''$flags''."
     flags="$fallback_GCCcompatible_flags"
   else
     stderr_echo '--- INFO:     Detected a compiler driver that is _not_ compatible with GCC compiler flags. ---'
   fi
 else
-  stderr_echo "--- INFO:   Using provided compiler flags ''$flags''."
+  stderr_echo "--- INFO:   Using _non_-fallback compiler flags ''$flags''."
 fi
 stderr_echo   "--- INFO:   Using compiler flags ''$flags''."
 
