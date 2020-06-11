@@ -33,9 +33,9 @@ sanitize_filename() {
 
 stderr_echo "--- INFO: in ''$0'': ---"
 stderr_echo "--- INFO:   ''\$@'' :[$@] ---"
-stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: (fallback) flags to use when [1] optional flags are _not_ provided _and_ [2] compiler seems compatible with GCC flags [in this position in the {list of args} so as to keep the others at [2, 3, 4] for backwards compatibility with how this code was originally written
-stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: base basename [_no_, I did _not_ just now stutter ;-)]
-stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # REQUIRED: "--name=value"-style arg.
+stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: base basename [_no_, I did _not_ just now stutter ;-)]
+stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # OPTIONAL: "--name=value"-style arg.
+stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # OPTIONAL: "--name=value"-style arg.
 stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
 stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
 ### "--name=value"-style arg.s supported:
@@ -44,9 +44,10 @@ stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style a
 ###       at least one flexible-order arg. must occur [this bullet-point`s such arg.]
 ###   * "--compiler[_-]flags="<...>
 ###   * "--source[_-]pathname="<...> [for SHA512 hashing]
+###   * "--fallback_GCC-compatible_flags="<...>
 
-if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
-  stderr_echo "--- ERROR: not enough arg.s/param.s given to ''$0'': at least 3 required, 5 supported. ---"
+if [ -z "$1" ]; then
+  stderr_echo "--- ERROR: not enough arg.s/param.s given to ''$0'': at least 1 required, 5 supported. ---"
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
@@ -57,9 +58,9 @@ flags_to_use_when_compiler_seems_compatible_with_GCC_flags="$1"
 
 alleged_compiler_command=
 COMPILER_INPUT_PREFIX='--compiler[_-]command='
-for a in "$3" "$4" "$5"; do
+for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" | grep -q "^$COMPILER_INPUT_PREFIX"; then
-    alleged_compiler_command=`echo "$3"| sed s/^$COMPILER_INPUT_PREFIX//`
+    alleged_compiler_command=`echo "$a"| sed s/^$COMPILER_INPUT_PREFIX//`
     stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---" # reminder: IMPORTANT: in _this_ script, _all_ debug/info/test/whatever output _must_ _not_ go to std. _out_
   fi
 done
@@ -67,7 +68,7 @@ done
 flags= # empty by default
 flags_have_been_explicitly_set=
 FLAGS_INPUT_PREFIX='--compiler[_-]flags='
-for a in "$3" "$4" "$5"; do
+for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" |   grep -q "^$FLAGS_INPUT_PREFIX"; then
     flags=`echo "$a"| sed s/^$FLAGS_INPUT_PREFIX//`
     stderr_echo "--- DEBUG:  requested compiler flags: flags=''$flags'' ---"
@@ -77,7 +78,7 @@ done
 
 pathname= # empty by default
 PATHNAME_INPUT_PREFIX='--source[_-]pathname='
-for a in "$3" "$4" "$5"; do
+for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" |      grep -q "^$PATHNAME_INPUT_PREFIX"; then
     pathname=`echo "$a"| sed s/^$PATHNAME_INPUT_PREFIX//`
     stderr_echo "--- DEBUG:  source-code pathname: ''$flags'' ---"
@@ -105,7 +106,7 @@ fi
 stderr_echo   "--- INFO:   Using compiler flags ''$flags''."
 
 
-base_basename="$2"
+base_basename="$1"
 
 descriptive_basename="$base_basename"
 # note to self: yes, I _know_ the debug-msg. numbers start at 2 ...  "legacy code" ;-)
@@ -116,7 +117,7 @@ if "$compiler_command" --version 2>&1 >/dev/null; then # does it "understand" "-
 fi
 stderr_echo "DEBUG 3: descriptive_basename=''$descriptive_basename''"
 if [ -n "$flags" ]; then
-  descriptive_basename="$descriptive_basename"___explicit_compiler_flags="$flags" # "explicit" as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
+  descriptive_basename="$descriptive_basename"___flags_given_to_compiler_driver_command="$flags" # as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
 fi
 stderr_echo "DEBUG 4: descriptive_basename=''$descriptive_basename''"
 descriptive_basename="`sanitize_filename "$descriptive_basename" ' ' _ '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___`" # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
@@ -125,8 +126,8 @@ stderr_echo "DEBUG 5: descriptive_basename=''$descriptive_basename''"
 # caller=`ps -o comm "$PPID" | tail -n 1`
 # descriptive_basename="$descriptive_basename"___caller_of_compile.sh="$caller"
 stderr_echo "DEBUG 6: descriptive_basename=''$descriptive_basename''"
-if is_executable_and_not_a_directory `which sha512sum`; then
-  descriptive_basename="$descriptive_basename"___source_code_SHA512sum="`sha512sum "$1" | cut -f 1 -d ' '`"
+if is_executable_and_not_a_directory `which sha512sum` && [ -r "$pathname" ]; then
+  descriptive_basename="$descriptive_basename"___source_code_SHA512sum="`sha512sum "$pathname" | cut -f 1 -d ' '`"
 fi
 stderr_echo "DEBUG 7: descriptive_basename=''$descriptive_basename''"
 if [ -n "$ENABLE_UTF8_IN_FILENAMES" ] && [ "$ENABLE_UTF8_IN_FILENAMES" -gt 0 ]; then
