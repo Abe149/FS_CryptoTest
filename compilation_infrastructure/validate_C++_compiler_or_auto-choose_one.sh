@@ -26,8 +26,12 @@ test_alleged_Cxx_compiler() {
     exit 1 # TO DO: add anti-sourcing protection
   fi
 
-  # TO DO: make the next line require a real C++ compiler, i.e. not also accept a C-only compiler
-  echo 'int main(){}' > "$test_file_base_pathname""$source_extension" # the most-concise C++ program I know, albeit also a valid [and also the most-concise I know] _C_ program
+  cat << THE_END > "$test_file_base_pathname""$source_extension"
+#include <iostream>
+int main(){std::cout<<"Hello world [from a C++-_only_ -- i.e. _not_ also valid C -- program].\n";}
+
+THE_END
+
   # EMBEDDED ASSUMPTION on the next line: "-o" _always_ means "output to the following pathname"
   "$1" "$test_file_base_pathname""$source_extension" -o "$test_file_base_pathname""$executable_extension" >&2
   #                ensure any stdout output from the compiler doesn`t pollute this script`s stdout output ^^^
