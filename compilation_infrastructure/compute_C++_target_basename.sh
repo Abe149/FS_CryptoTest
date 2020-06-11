@@ -165,4 +165,9 @@ if [ -n "$ENABLE_UTF8_IN_FILENAMES" ] && [ "$ENABLE_UTF8_IN_FILENAMES" -gt 0 ]; 
 fi
 stderr_echo "DEBUG 8: descriptive_basename=''$descriptive_basename''"
 
-echo "$descriptive_basename"
+echo -n "$descriptive_basename"
+### <https://en.wikipedia.org/wiki/Uname> ###
+if uname -a | grep -Eiq '(Cygwin|MinGW|Interix|UnxUtils|Uwin|winDOwS)'; then
+  echo -n .exe
+fi
+echo
