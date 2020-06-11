@@ -51,37 +51,44 @@ if [ -z "$1" ]; then
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
-flags_to_use_when_compiler_seems_compatible_with_GCC_flags="$1"
-
 ### reminder: due to the way I am using "sed" here,
 ###           don`t _ever_ put an ASCII slash in _any_ of the values of the "<...>_INPUT_PREFIX" variables!
 
 alleged_compiler_command=
-COMPILER_INPUT_PREFIX='--compiler[_-]command='
+compiler_input_prefix='--compiler[_-]command='
 for a in "$2" "$3" "$4" "$5"; do
-  if echo "$a" | grep -q "^$COMPILER_INPUT_PREFIX"; then
-    alleged_compiler_command=`echo "$a"| sed s/^$COMPILER_INPUT_PREFIX//`
+  if echo "$a" | grep -q "^$compiler_input_prefix"; then
+    alleged_compiler_command=`echo "$a"| sed s/^$compiler_input_prefix//`
     stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---" # reminder: IMPORTANT: in _this_ script, _all_ debug/info/test/whatever output _must_ _not_ go to std. _out_
   fi
 done
 
 flags= # empty by default
 flags_have_been_explicitly_set=
-FLAGS_INPUT_PREFIX='--compiler[_-]flags='
+flags_input_prefix='--compiler[_-]flags='
 for a in "$2" "$3" "$4" "$5"; do
-  if echo "$a" |   grep -q "^$FLAGS_INPUT_PREFIX"; then
-    flags=`echo "$a"| sed s/^$FLAGS_INPUT_PREFIX//`
+  if echo "$a" |   grep -q "^$flags_input_prefix"; then
+    flags=`echo "$a"| sed s/^$flags_input_prefix//`
     stderr_echo "--- DEBUG:  requested compiler flags: flags=''$flags'' ---"
     flags_have_been_explicitly_set=1
   fi
 done
 
 pathname= # empty by default
-PATHNAME_INPUT_PREFIX='--source[_-]pathname='
+pathname_input_prefix='--source[_-]pathname='
 for a in "$2" "$3" "$4" "$5"; do
-  if echo "$a" |      grep -q "^$PATHNAME_INPUT_PREFIX"; then
-    pathname=`echo "$a"| sed s/^$PATHNAME_INPUT_PREFIX//`
-    stderr_echo "--- DEBUG:  source-code pathname: ''$flags'' ---"
+  if echo "$a" |      grep -q "^$pathname_input_prefix"; then
+    pathname=`echo "$a"| sed s/^$pathname_input_prefix//`
+    stderr_echo "--- DEBUG:  source-code pathname: ''$pathname'' ---"
+  fi
+done
+
+fallback_GCCcompatible_flags= # empty by default
+fallback_GCCcompatible_flags_input_prefix='--fallback_GCC-compatible_flags' # _intentionally_ no {'_' vs. '-'} flexibility on _this_ one
+for a in "$2" "$3" "$4" "$5"; do
+  if echo "$a" |      grep -q "^$fallback_GCCcompatible_flags_input_prefix"; then
+    fallback_GCCcompatible_flags=`echo "$a"| sed s/^$fallback_GCCcompatible_flags_input_prefix//`
+    stderr_echo "--- DEBUG:   fallback_GCCcompatible_flags=''$fallback_GCCcompatible_flags'' ---"
   fi
 done
 
@@ -96,7 +103,7 @@ if [ -z "$flags_have_been_explicitly_set" ] || [ "$flags_have_been_explicitly_se
   stderr_echo '--- INFO:   Going to try to autodetect suitable compiler flags. ---'
   if "$compiler_command" --version 2>&1 | grep -q -E '(GCC|clang)'; then
     stderr_echo '--- INFO:     Detected a compiler driver that _is_ compatible with GCC compiler flags. ---'
-    flags="$flags_to_use_when_compiler_seems_compatible_with_GCC_flags"
+    flags="$fallback_GCCcompatible_flags"
   else
     stderr_echo '--- INFO:     Detected a compiler driver that is _not_ compatible with GCC compiler flags. ---'
   fi
