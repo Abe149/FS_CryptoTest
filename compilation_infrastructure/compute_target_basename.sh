@@ -8,14 +8,13 @@ ENABLE_UTF8_IN_FILENAMES=1
 
 ### --- vvv --- functions --- vvv --- ###
 
-stderr_echo() { # so I`ll be able to see easily -- esp. in a syntax-highlit view -- which "kind"/"flavor" of output each line uses
-  echo "$@" >&2
+## --- load shared functions --- ##
+Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX() {
+  ls -dl "$1" | sed 's/.* //' # will fail _miserably_ when there`s an ASCII space in the input  :-(
 }
+. $(dirname "`Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX "$0"`")/shared_functions.sh
 
-is_executable_and_not_a_directory() { # for DRY
-  test -x "$1" -a ! -d "$1"
-  return $?
-}
+## --- non-shared functions --- #
 
 sanitize_filename() {
   filename="$1"
@@ -46,11 +45,6 @@ fi
 
 flags_to_use_when_compiler_seems_compatible_with_GCC_flags="$1"
 
-
-
-
-
-
 # reminder: due to the way I am using "sed" 2 lines from here, don`t _ever_ put an ASCII slash in "COMPILER_INPUT_PREFIX"!
 COMPILER_INPUT_PREFIX=--compiler_command=
 alleged_compiler_command=
@@ -59,28 +53,5 @@ if echo "$3" | grep -q "^$COMPILER_INPUT_PREFIX"; then
 fi
 stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---" # reminder 1: ">&2" is a "/dev/"-free way to say "redirect to standard _error_"; reminder 2: IMPORTANT: in _this_ script, _all_ debug/info/test/whatever output _must_ not go to std. _out_
 
-compiler_command=`which "$alleged_compiler_command"`
-if test -n "$compiler_command" && is_executable_and_not_a_directory "$compiler_command"; then # if the alleged compiler arg. is not provided, or points to something not executable or a directory
-  stderr_echo "--- INFO:   Using provided compiler command ''$3'', found at ''$compiler_command''. ---"
-else
-  stderr_echo '--- INFO:   Going to try to autodetect the C++ compiler command. ---'
-  old_compiler_command="$compiler_command"
-  for alleged_compiler_command in c++ CC g++ clang++; do
-    alleged_compiler_fullPath=`which $alleged_compiler_command`
-    if is_executable_and_not_a_directory "$alleged_compiler_fullPath"; then
-      compiler_command="$alleged_compiler_fullPath"
-      break
-    fi
-  done
-  if [ "$compiler_command" != "$old_compiler_command" ]; then
-    stderr_echo "--- INFO:   Auto-chose ''$compiler_command'' as the compiler command to use. ---"
-  fi
-fi
-# check that by now "$compiler_command" is valid, and "die" if it isn`t
-if ! is_executable_and_not_a_directory "$compiler_command"; then
-  stderr_echo "--- ERROR:  No valid compiler command found at ''$compiler_command''.  Aborting. ---"
-  exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
-fi
-
+compiler_command=$($(dirname "`Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX "$0"`")/validate_C++_compiler_or_auto-choose_one.sh "$alleged_compiler_command")
 stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
-
