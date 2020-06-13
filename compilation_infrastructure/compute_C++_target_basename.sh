@@ -33,18 +33,16 @@ sanitize_filename() {
 stderr_echo "--- INFO: in ''$0'': ---"
 stderr_echo "--- INFO:   ''\$@'' :[$@] ---"
 stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: base basename [_no_, I did _not_ just now stutter ;-)]
-stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # OPTIONAL: "--name=value"-style arg.
+stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: "--name=value"-style arg.
 stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # OPTIONAL: "--name=value"-style arg.
 stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
 stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
-stderr_echo "--- INFO:   ''\$6'' :''$6'' ---" # OPTIONAL: "--name=value"-style arg.
 ### "--name=value"-style arg.s supported:
 ###   * "--compiler[_-]command="<...> : _MANDATORY_,
 ###     which is why #3 [above] is "REQUIRED":
 ###       at least one flexible-order arg. must occur [this bullet-point`s such arg.]
-###   * "--compiler[_-]flags="<...>
+###   * "--compiler[_-]flags="<...> [REQUIRED, even if the value is empty] [I made this one required to prevent possible future divergence of replicated fallback_code/fallback_flag_values/both in between this script and "compile.sh"]
 ###   * "--source[_-]pathname="<...> [for SHA hashing]
-###   * "--fallback_GCC-compatible_flags="<...>
 ###   * "--disable_generation_of_UTF-8_in_computed_basename"
 ###       only "disable _generation of_ <...>", i.e. not a point-blank "disable <...>",
 ###       b/c a non-ASCII UTF-8 char. could still appear in the input _base_ basename
@@ -60,17 +58,17 @@ if   echo "$1" | grep -q '^-'; then # the first CLI arg. starts with a '-'
 fi
 
 
-if [ -z "$1" ]; then
-  stderr_echo "--- ERROR: not enough arg.s/param.s given to ''$0'': at least 1 required, 6 supported. ---"
+if [ -z "$1" -o -z "$2" ]; then
+  stderr_echo "--- ERROR: not enough arg.s/param.s given to ''$0'': at least 2 required, 5 supported. ---"
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
 ### reminder: due to the way I am using "sed" here,
-###           don`t _ever_ put an ASCII slash in _any_ of the values of the "<...>_INPUT_PREFIX" variables!
+###           don`t _ever_ put an ASCII slash in _any_ of the values of the "<...>_input_prefix" variables!
 
 alleged_compiler_command=
 compiler_input_prefix='--compiler[_-]command='
-for a in "$2" "$3" "$4" "$5" "$6"; do
+for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" | grep -q "^$compiler_input_prefix"; then
     alleged_compiler_command=`echo "$a"| sed s/^$compiler_input_prefix//`
     stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---" # reminder: IMPORTANT: in _this_ script, _all_ debug/info/test/whatever output _must_ _not_ go to std. _out_
@@ -80,33 +78,24 @@ done
 flags= # empty by default
 flags_have_been_explicitly_set=
 flags_input_prefix='--compiler[_-]flags='
-for a in "$2" "$3" "$4" "$5" "$6"; do
+for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" |   grep -q "^$flags_input_prefix"; then
     flags=`echo "$a"| sed s/^$flags_input_prefix//`
-    stderr_echo "--- DEBUG:  requested compiler flags: flags=''$flags'' ---"
+    stderr_echo "--- DEBUG:  compiler flags: flags=''$flags'' ---"
     flags_have_been_explicitly_set=1
   fi
 done
 
 pathname= # empty by default
 pathname_input_prefix='--source[_-]pathname='
-for a in "$2" "$3" "$4" "$5" "$6"; do
+for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" |      grep -q "^$pathname_input_prefix"; then
     pathname=`echo "$a"| sed s/^$pathname_input_prefix//`
     stderr_echo "--- DEBUG:  source-code pathname: ''$pathname'' ---"
   fi
 done
 
-fallback_GCCcompatible_flags= # empty by default
-fallback_GCCcompatible_flags_input_prefix='--fallback_GCC-compatible_flags' # _intentionally_ no {'_' vs. '-'} flexibility on _this_ one
-for a in "$2" "$3" "$4" "$5" "$6"; do
-  if echo "$a" |      grep -q "^$fallback_GCCcompatible_flags_input_prefix"; then
-    fallback_GCCcompatible_flags=`echo "$a"| sed s/^$fallback_GCCcompatible_flags_input_prefix//`
-    stderr_echo "--- DEBUG:   fallback_GCCcompatible_flags=''$fallback_GCCcompatible_flags'' ---"
-  fi
-done
-
-for a in "$2" "$3" "$4" "$5" "$6"; do
+for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" | grep -q '^--disable_generation_of_UTF-8_in_computed_basename$'; then
     stderr_echo "--- DEBUG:   disabled UTF-8 [Unicode] generation/conversion ---"
     ENABLE_UTF8_IN_FILENAMES=0
@@ -117,22 +106,16 @@ done
 
 
 
-compiler_command=$($(dirname "`Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX "$0"`")/validate_C++_compiler_or_auto-choose_one.sh "$alleged_compiler_command")
-stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
-
 if [ -z "$flags_have_been_explicitly_set" ] || [ "$flags_have_been_explicitly_set" -eq 0 ]; then
-  stderr_echo '--- INFO:   Going to try to autodetect suitable compiler flags. ---'
-  if "$compiler_command" --version 2>&1 | grep -q -E '(GCC|clang)'; then
-    stderr_echo '--- INFO:     Detected a compiler driver that _is_ compatible with GCC compiler flags. ---'
-    stderr_echo "--- INFO:     Using fallback compiler flags ''$flags''."
-    flags="$fallback_GCCcompatible_flags"
-  else
-    stderr_echo '--- INFO:     Detected a compiler driver that is _not_ compatible with GCC compiler flags. ---'
-  fi
+  stderr_echo "--- ERROR:  this script [$0] _requires_ that its caller give it the compiler flags that are going to be used in compilation, even if that string is a/the empty string."
+  exit 1
 else
-  stderr_echo "--- INFO:   Using _non_-fallback compiler flags ''$flags''."
+  stderr_echo "--- INFO:   Using [non-fallback] compiler flags ''$flags''."
 fi
 stderr_echo   "--- INFO:   Using compiler flags ''$flags''."
+
+compiler_command=$($(dirname "`Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX "$0"`")/validate_C++_compiler_or_auto-choose_one.sh "$alleged_compiler_command")
+stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
 
 
 base_basename="$1"
