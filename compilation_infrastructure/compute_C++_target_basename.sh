@@ -143,25 +143,23 @@ descriptive_basename="$base_basename"
 stderr_echo "DEBUG 2: descriptive_basename=''$descriptive_basename''"
 if "$compiler_command" --version 2>&1 >/dev/null; then # does it "understand" "--version"?  if not, we don`t want an extraneous "___" at the end of the target`s filename
   compiler_version_first_line=`"$compiler_command" --version 2>&1 | head -n 1`
-  descriptive_basename="$descriptive_basename"___compiler_version="$compiler_version_first_line"
+  descriptive_basename="$descriptive_basename   compiler_version=$compiler_version_first_line"
 fi
 stderr_echo "DEBUG 3: descriptive_basename=''$descriptive_basename''"
 if [ -n "$flags" ]; then
-  descriptive_basename="$descriptive_basename"___flags_given_to_compiler_driver_command="$flags" # as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
+  descriptive_basename="$descriptive_basename    flags_given_to_compiler_driver_command=$flags" # as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
 fi
 stderr_echo "DEBUG 4: descriptive_basename=''$descriptive_basename''"
-descriptive_basename="`sanitize_filename "$descriptive_basename" ' ' _ '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___`" # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
-stderr_echo "DEBUG 5: descriptive_basename=''$descriptive_basename''"
-### re the next 2 lines of code: this works well with GNU Make on Debian 7 ["<...>___caller_of_compile.sh=make"], but _badly_ with "pmake" [also on Debian 7]: "<...>___caller_of_compile.sh=sh"
-# caller=`ps -o comm "$PPID" | tail -n 1`
-# descriptive_basename="$descriptive_basename"___caller_of_compile.sh="$caller"
+descriptive_basename="`sanitize_filename "$descriptive_basename" '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___`" # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
 stderr_echo "DEBUG 6: descriptive_basename=''$descriptive_basename''"
 if is_executable_and_not_a_directory `which sha512sum` && [ -r "$pathname" ]; then
   descriptive_basename="$descriptive_basename"___source_code_SHA512sum="`sha512sum "$pathname" | cut -f 1 -d ' '`"
 fi
 stderr_echo "DEBUG 7: descriptive_basename=''$descriptive_basename''"
 if [ -n "$ENABLE_UTF8_IN_FILENAMES" ] && [ "$ENABLE_UTF8_IN_FILENAMES" -gt 0 ]; then
-  descriptive_basename="`sanitize_filename "$descriptive_basename" '\=' ＝ '(' （ ')' ）`"
+  descriptive_basename="`sanitize_filename "$descriptive_basename" '\=' ＝ '(' （ ')' ） ' ' ␠`"
+else
+  descriptive_basename="`echo "$descriptive_basename" | tr ' ' _`"
 fi
 stderr_echo "DEBUG 8: descriptive_basename=''$descriptive_basename''"
 
