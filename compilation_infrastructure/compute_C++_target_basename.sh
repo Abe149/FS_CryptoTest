@@ -138,32 +138,32 @@ stderr_echo   "--- INFO:   Using compiler flags ''$flags''."
 
 base_basename="$1"
 
-descriptive_basename="$base_basename"
-# note to self: yes, I _know_ the debug-msg. numbers start at 2 ...  "legacy code" ;-)
-stderr_echo "DEBUG 2: descriptive_basename=''$descriptive_basename''"
+suffix_to_add=
+### note to self: yes, I _know_ the debug-msg. numbers start at 2 ...  "legacy code" ;-)
+# stderr_echo "DEBUG 2: suffix_to_add=''$suffix_to_add''"
 if "$compiler_command" --version 2>&1 >/dev/null; then # does it "understand" "--version"?  if not, we don`t want an extraneous "___" at the end of the target`s filename
   compiler_version_first_line=`"$compiler_command" --version 2>&1 | head -n 1`
-  descriptive_basename="$descriptive_basename   compiler_version=$compiler_version_first_line"
+  suffix_to_add="$suffix_to_add   compiler_version=$compiler_version_first_line"
 fi
-stderr_echo "DEBUG 3: descriptive_basename=''$descriptive_basename''"
+# stderr_echo "DEBUG 3: suffix_to_add=''$suffix_to_add''"
 if [ -n "$flags" ]; then
-  descriptive_basename="$descriptive_basename    flags_given_to_compiler_driver_command=$flags" # as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
+  suffix_to_add="$suffix_to_add    flags_given_to_compiler_driver_command=$flags" # as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
 fi
-stderr_echo "DEBUG 4: descriptive_basename=''$descriptive_basename''"
-descriptive_basename="`sanitize_filename "$descriptive_basename" '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___`" # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
-stderr_echo "DEBUG 6: descriptive_basename=''$descriptive_basename''"
+# stderr_echo "DEBUG 4: suffix_to_add=''$suffix_to_add''"
+suffix_to_add="`sanitize_filename "$suffix_to_add" '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___`" # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
+# stderr_echo "DEBUG 6: suffix_to_add=''$suffix_to_add''"
 if is_executable_and_not_a_directory `which sha512sum` && [ -r "$pathname" ]; then
-  descriptive_basename="$descriptive_basename"___source_code_SHA512sum="`sha512sum "$pathname" | cut -f 1 -d ' '`"
+  suffix_to_add="$suffix_to_add"___source_code_SHA512sum="`sha512sum "$pathname" | cut -f 1 -d ' '`"
 fi
-stderr_echo "DEBUG 7: descriptive_basename=''$descriptive_basename''"
+# stderr_echo "DEBUG 7: suffix_to_add=''$suffix_to_add''"
 if [ -n "$ENABLE_UTF8_IN_FILENAMES" ] && [ "$ENABLE_UTF8_IN_FILENAMES" -gt 0 ]; then
-  descriptive_basename="`sanitize_filename "$descriptive_basename" '\=' ＝ '(' （ ')' ） ' ' ␠`"
+  suffix_to_add="`sanitize_filename "$suffix_to_add" '\=' ＝ '(' （ ')' ） ' ' ␠`"
 else
-  descriptive_basename="`echo "$descriptive_basename" | tr ' ' _`"
+  suffix_to_add="`echo "$suffix_to_add" | tr ' ' _`"
 fi
-stderr_echo "DEBUG 8: descriptive_basename=''$descriptive_basename''"
+# stderr_echo "DEBUG 8: suffix_to_add=''$suffix_to_add''"
 
-echo -n "$descriptive_basename"
+echo -n "$base_basename$suffix_to_add"
 ### <https://en.wikipedia.org/wiki/Uname> ###
 if uname -a | grep -Eiq '(Cygwin|MinGW|Interix|UnxUtils|Uwin|winDOwS)'; then
   echo -n .exe
