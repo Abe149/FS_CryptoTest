@@ -35,7 +35,45 @@ stderr_echo "--- INFO:   ''\$0'' :''$0'' ---"
 stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: source
 stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: destination
 stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # REQUIRED: alleged compiler-driver command
-stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: non-default flags, if any
+stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
+stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
+stderr_echo "--- INFO:   ''\$6'' :''$6'' ---" # OPTIONAL: "--name=value"-style arg.
+### "--name=value"-style arg.s supported:
+###   * "--compiler[_-]flags="<...>
+###   * "--dry[_-]run"
+###   * "--destination_basename[_-]is[_-]already[_-]descriptivized"
+
+flags= # empty by default
+flags_have_been_explicitly_set=
+flags_input_prefix='--compiler[_-]flags='
+for a in "$4" "$5" "$6"; do
+  if echo "$a" |   grep -q "^$flags_input_prefix"; then
+    flags=`echo "$a"| sed s/^$flags_input_prefix//`
+    stderr_echo "--- DEBUG:  compiler flags: flags=''$flags'' ---"
+    flags_have_been_explicitly_set=1
+  fi
+done
+
+in_dryRun_mode=
+dryRun_arg='--dry[_-]run'
+for a in "$4" "$5" "$6"; do
+  if echo "$a" |   grep -q "^$dryRun_arg\$"; then # the "\$" at the end of the regex: to prevent inputs like "--dry-run=no" from triggering dry-run mode
+    stderr_echo "--- DEBUG:  dry-run mode activated [going to figure out flags first, then compute a nice basename for the executable] ---"
+    in_dryRun_mode=1
+  fi
+done
+
+### this next "feature" [bug? ;-)] only makes sense in _non_-dryRun mode ["wet-run mode?"], but I see no need to issue an error and/or exit early if/when they both appear in the inputs in the same execution
+destination_basename_is_already_descriptivized=
+already_pretty_arg='--destination_basename[_-]is[_-]already[_-]descriptivized'
+for a in "$4" "$5" "$6"; do
+  if echo "$a" |   grep -q "^$already_pretty_arg\$"; then # the "\$" at the end of the regex: to prevent inputs like "--destination_basename_is_already_descriptivized=no" from "working" in an unwanted way [and breaking "everything" as a result ;-)]
+    stderr_echo "--- DEBUG:  caller [Make?] claims that the target basename has already been descriptivized ---"
+    destination_basename_is_already_descriptivized=1
+  fi
+done
+
+
 
 ### TO DO: enable the disabling [?!? ;-)] of Unicode in the target basename
 # ENABLE_UTF8_IN_FILENAMES=1
@@ -90,8 +128,9 @@ stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
 #   "$compiler_command" --version 2>&1 | grep -v '^$' | sed -e 's/^/--- INFO:     /' -e 's/$/ ---/'
 # fi
 
-flags="$4"
-if test -z "$flags"; then
+if [ -n "$flags_have_been_explicitly_set" -a "$flags_have_been_explicitly_set" -gt 0 ]; then
+  stderr_echo "--- INFO:   Using provided compiler flags ''$flags''."
+else
   stderr_echo '--- INFO:   Going to try to autodetect suitable compiler flags. ---'
   if "$compiler_command" --version 2>&1 | grep -q -E '(GCC|clang)'; then
     stderr_echo '--- INFO:     Detected a compiler driver that _is_ compatible with GCC compiler flags. ---'
@@ -99,8 +138,6 @@ if test -z "$flags"; then
   else
     stderr_echo '--- INFO:     Detected a compiler driver that is _not_ compatible with GCC compiler flags. ---'
   fi
-else
-  stderr_echo "--- INFO:   Using provided compiler flags ''$flags''."
 fi
 stderr_echo   "--- INFO:   Using compiler flags ''$flags''."
 
@@ -109,9 +146,19 @@ real_target_directory="`dirname "$2"`"
 target_directory_for_new_files="`dirname "$2"`"/new/
 original_target_basename="`basename "$2"`"
 
-mkdir -p "$target_directory_for_new_files" || exit 1
-
 descriptive_basename="`"$my_installation_dir"/compute_C++_target_basename.sh "$original_target_basename" --compiler_command="$compiler_command" --compiler_flags="$flags" --source_pathname="$1"`"
+
+
+
+if [ -n "$in_dryRun_mode" ] && [ "$in_dryRun_mode" -gt 0 ]; then
+  stderr_echo '--- INFO:     In dry-run mode, so about to output computed destination/target pathname with "prettified" basename, then exit. ---'
+  echo "$real_target_directory/$descriptive_basename"
+  exit 0
+fi
+
+
+
+mkdir -p "$target_directory_for_new_files" || exit 1
 
 target_with_descriptive_name="$target_directory_for_new_files"/"$descriptive_basename"
 
@@ -122,7 +169,7 @@ compiler_command_result=$? # we need/want to keep this one "safe" so we can use 
 stderr_echo "--- INFO:     RESULT: Compiler exit/result code: $compiler_command_result ---"
 
 if [ $compiler_command_result -ne 0 ]; then
-  estderr_cho "--- ERROR: compiler exit/result code: $compiler_command_result ---"
+  stderr_echo "--- ERROR: compiler exit/result code: $compiler_command_result ---"
   exit $compiler_command_result
 fi
 
