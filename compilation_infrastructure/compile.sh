@@ -2,7 +2,6 @@
 
 ### --- vvv --- "tuneables" --- vvv --- ###
 FLAGS_TO_USE_WHEN_COMPILER_SEEMS_COMPATIBLE_WITH_GCC_FLAGS=-O2
-ENABLE_UTF8_IN_FILENAMES=1
 ### --- ^^^ --- "tuneables" --- ^^^ --- ###
 
 
@@ -14,6 +13,9 @@ echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: source
 echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: destination
 echo "--- INFO:   ''\$3'' :''$3'' ---" # REQUIRED: alleged compiler-driver command
 echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: non-default flags, if any
+
+### TO DO: enable the disabling [?!? ;-)] of Unicode in the target basename
+# ENABLE_UTF8_IN_FILENAMES=1
 
 if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
   echo "--- ERROR: not enough arg.s/param.s given to ''$0''. ---"
@@ -108,21 +110,31 @@ original_target_basename="`basename "$2"`"
 
 mkdir -p "$target_directory_for_new_files" || exit 1
 
-descriptive_basename="`"$my_installation_dir"/compute_C++_target_basename.sh "$original_target_basename"`"
+descriptive_basename="`"$my_installation_dir"/compute_C++_target_basename.sh "$original_target_basename" --compiler_command="$compiler_command" --compiler_flags="$flags" --source_pathname="$1"`"
 
 target_with_descriptive_name="$target_directory_for_new_files"/"$descriptive_basename"
 
 # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output to this pathname"
-echo '--- INFO:   About to execute "'"$compiler_command"\" \"$1\" -o \"$target_with_descriptive_name\" ---
-"$compiler_command" "$1" -o "$target_with_descriptive_name"
-echo "--- INFO:     RESULT: Compiler exit/result code: $? ---"
+echo '--- INFO:   About to execute "'"$compiler_command"\" \"$1\" -o \"$target_with_descriptive_name\" \"$flags\" ---
+"$compiler_command" "$1" -o "$target_with_descriptive_name" "$flags"
+compiler_command_result=$? # we need/want to keep this one "safe" so we can use it in a not-immediately-thereafter context
+echo "--- INFO:     RESULT: Compiler exit/result code: $compiler_command_result ---"
+
+if [ $compiler_command_result -ne 0 ]; then
+  echo "--- ERROR: compiler exit/result code: $compiler_command_result ---"
+  exit $compiler_command_result
+fi
 
 echo "--- INFO:   About to list the post-compilation executable [definitely new] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
 echo "--- INFO:     RESULT: NEW EXECUTABLE: `ls -l "$target_with_descriptive_name" 2>&1` ---"
 
 ### overwrite the old executable only if it is different from the new one; compiling in this "careful" way preserves the old timestamp of the old executable if/when the new executable file`s "data fork" is the same as that of the old one ###
 cd "$target_directory_for_new_files"
-cmp -s "$descriptive_basename" ../"$descriptive_basename" || mv -f "$descriptive_basename" ../
+if cmp -s "$descriptive_basename" ../"$descriptive_basename"; then
+  echo '--- NOTICE:    _intentionally_ not updating the build target, so as to preserve its file timestamp, since recompilation produced an identical executable; this may cause unexpected behavior in the following case: the source code file`s timestamp has been updated -- but that file`s _content_ has not changed -- since the last recompilation with that source-code content, and/or the Makefile has a newer timetamp than that of the relevant executable file; in that case, repeated invocations of "make" will recompile the code, since the newer-but-identical-content executable file will _not_ be used to replace the older-and-identical-content executable file. ---'
+else
+  mv -f "$descriptive_basename" ../
+fi
 cd - >/dev/null
 
 echo "--- INFO:   About to list the post-compilation executable [possibly ''old'' if the new one was byte-for-byte identical] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
@@ -132,5 +144,5 @@ echo "--- INFO:     RESULT: CURRENT EXECUTABLE: `ls -l "$real_target_directory/$
 ### using a symbolic link here should be at-least-mostly-OK, since we are forcing symlink regeneration upon recompilation; using a symlink for this but _not_ doing the forcing part might screw up Make`s ability to detect that the program needs to be recompiled: Make might "think" the program should _always_ be recompiled, i.e. even though the source code hasn`t changed, b/c only the "real executable" had gotten an updated timestamp upon the last recompilation [i.e. the symlink had _not_ been updated at that time]
 cd "$real_target_directory"
 # ln -f -s "`basename "$target_with_descriptive_name"`" "`basename "$2"`" # preserving this line in case its replacement on the next line ever turns out to be wrong
-  ln -f -s "$descriptive_basename" "$original_target_basename"
+ln -f -s "$descriptive_basename" "$original_target_basename"
 cd - >/dev/null

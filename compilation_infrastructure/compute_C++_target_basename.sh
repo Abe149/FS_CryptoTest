@@ -1,10 +1,9 @@
 #!/usr/bin/env sh
 
-### --- vvv --- "tuneables" --- vvv --- ###
-ENABLE_UTF8_IN_FILENAMES=1
-### --- ^^^ --- "tuneables" --- ^^^ --- ###
-
-
+ENABLE_UTF8_IN_FILENAMES=1 # the default; it is _not_ recommended to edit this to turn it off,
+                           # since there is only a mechanism in place [a CLI arg.] to DISable Unicode generation,
+                           # i.e. a way to override a 1 here with a 0 elsewhere --
+                           # there is _no_ mechanism in place to ENable Unicode generation if/when it`s not enabled _here_
 
 ### --- vvv --- functions --- vvv --- ###
 
@@ -44,7 +43,7 @@ stderr_echo "--- INFO:   ''\$6'' :''$6'' ---" # OPTIONAL: "--name=value"-style a
 ###     which is why #3 [above] is "REQUIRED":
 ###       at least one flexible-order arg. must occur [this bullet-point`s such arg.]
 ###   * "--compiler[_-]flags="<...>
-###   * "--source[_-]pathname="<...> [for SHA512 hashing]
+###   * "--source[_-]pathname="<...> [for SHA hashing]
 ###   * "--fallback_GCC-compatible_flags="<...>
 ###   * "--disable_generation_of_UTF-8_in_computed_basename"
 ###       only "disable _generation of_ <...>", i.e. not a point-blank "disable <...>",
@@ -147,15 +146,15 @@ if "$compiler_command" --version 2>&1 >/dev/null; then # does it "understand" "-
 fi
 # stderr_echo "DEBUG 3: suffix_to_add=''$suffix_to_add''"
 if [ -n "$flags" ]; then
-  suffix_to_add="$suffix_to_add    flags_given_to_compiler_driver_command=$flags" # as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
+  suffix_to_add="$suffix_to_add   flags_given_to_compiler_driver=$flags" # as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
+fi
+# stderr_echo "DEBUG 7: suffix_to_add=''$suffix_to_add''"
+if is_executable_and_not_a_directory `which sha256sum` && [ -r "$pathname" ]; then
+  suffix_to_add="$suffix_to_add   source-code SHA256sum=`sha256sum "$pathname" | cut -f 1 -d ' '`"
 fi
 # stderr_echo "DEBUG 4: suffix_to_add=''$suffix_to_add''"
 suffix_to_add="`sanitize_filename "$suffix_to_add" '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___`" # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
 # stderr_echo "DEBUG 6: suffix_to_add=''$suffix_to_add''"
-if is_executable_and_not_a_directory `which sha512sum` && [ -r "$pathname" ]; then
-  suffix_to_add="$suffix_to_add"___source_code_SHA512sum="`sha512sum "$pathname" | cut -f 1 -d ' '`"
-fi
-# stderr_echo "DEBUG 7: suffix_to_add=''$suffix_to_add''"
 if [ -n "$ENABLE_UTF8_IN_FILENAMES" ] && [ "$ENABLE_UTF8_IN_FILENAMES" -gt 0 ]; then
   suffix_to_add="`sanitize_filename "$suffix_to_add" '\=' ＝ '(' （ ')' ） ' ' ␠`"
 else
