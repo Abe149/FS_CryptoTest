@@ -25,15 +25,15 @@ echo "--- INFO:     RESULT: OLD EXECUTABLE: `ls -l "$2" 2>&1` ---"
 
 
 
-### --- vvv --- functions --- vvv --- ###
-
 Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX() {
 # ls -dl "$1" | sed 's/^.* -> //' # will fail _miserably_ when processing the valid input '.'
   ls -dl "$1" | sed 's/.* //'     # will fail _miserably_ when there`s an ASCII space in the input
   # re the preceding 2 lines of code [incl. 1 commented out]: herein, we seem to be damned if we do and damned if we don`t
 }
 
-. $(dirname "`Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX "$0"`")/shared_functions.sh
+my_installation_dir="$(dirname "`Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX "$0"`")"
+
+. "$my_installation_dir"/shared_functions.sh
 
 sanitize_filename() {
   filename="$1"
@@ -45,8 +45,6 @@ sanitize_filename() {
   done
   echo "$filename"
 }
-
-### --- ^^^ --- functions --- ^^^ --- ###
 
 
 
@@ -110,29 +108,7 @@ original_target_basename="`basename "$2"`"
 
 mkdir -p "$target_directory_for_new_files" || exit 1
 
-descriptive_basename="$original_target_basename"
-# echo "DEBUG 2: descriptive_basename=''$descriptive_basename''"
-if "$compiler_command" --version 2>&1 >/dev/null; then # does it "understand" "--version"?  if not, we don`t want an extraneous "___" at the end of the target`s filename
-  compiler_version_first_line=`"$compiler_command" --version 2>&1 | head -n 1`
-  descriptive_basename="$descriptive_basename"___compiler_version="$compiler_version_first_line"
-fi
-# echo "DEBUG 3: descriptive_basename=''$descriptive_basename''"
-descriptive_basename="$descriptive_basename"___explicit_compiler_flags="$flags" # "explicit" as opposed to e.g. "implicitly requested by a wrapper script, e.g. a wrapper script that tries to force GCC into ISO-standards-conformance mode"
-# echo "DEBUG 4: descriptive_basename=''$descriptive_basename''"
-descriptive_basename="`sanitize_filename "$descriptive_basename" ' ' _ '\`' ___APOSTROPHE___ '~' ___TILDE___ '!' ___BANG___ '@' ___AT___ '#' ___NUMBER___ '\\$' ___DOLLAR___ % ___PERCENT___ '&' ___AMPERSAND___ '*' ___ASTERISK___ '\[' ___OPEN_BRACKET___ '{' ___OPEN_BRACE___ '\]' ___CLOSE_BRACKET___ '}' ___CLOSE_BRACE___ '\\\' ___BACKSLASH___ '|' ___PIPE___ ';' ___SEMICOLON___ : ___COLON___ "'" ___SINGLE_QUOTE___ '"' ___DOUBLE_QUOTE___ , ___COMMA___ '<' ___LESS_THAN___ '>' ___GREATER_THAN___ / ___SLASH___ '?' ___QUESTION___`" # note: without a backslash preceding it, '$' _does_ match the end of string and does _not_ match '$'  :-P
-# echo "DEBUG 5: descriptive_basename=''$descriptive_basename''"
-### re the next 2 lines of code: this works well with GNU Make on Debian 7 ["<...>___caller_of_compile.sh=make"], but _badly_ with "pmake" [also on Debian 7]: "<...>___caller_of_compile.sh=sh"
-# caller=`ps -o comm "$PPID" | tail -n 1`
-# descriptive_basename="$descriptive_basename"___caller_of_compile.sh="$caller"
-# echo "DEBUG 6: descriptive_basename=''$descriptive_basename''"
-if is_executable_and_not_a_directory `which sha512sum`; then
-  descriptive_basename="$descriptive_basename"___source_code_SHA512sum="`sha512sum "$1" | cut -f 1 -d ' '`"
-fi
-# echo "DEBUG 7: descriptive_basename=''$descriptive_basename''"
-if [ -n "$ENABLE_UTF8_IN_FILENAMES" ] && [ "$ENABLE_UTF8_IN_FILENAMES" -gt 0 ]; then
-descriptive_basename="`sanitize_filename "$descriptive_basename" '\=' ＝ '(' （ ')' ）`"
-fi
-# echo "DEBUG 8: descriptive_basename=''$descriptive_basename''"
+descriptive_basename="`"$my_installation_dir"/compute_C++_target_basename.sh "$original_target_basename"`"
 
 target_with_descriptive_name="$target_directory_for_new_files"/"$descriptive_basename"
 

@@ -77,5 +77,3 @@ fi
 stderr_echo "--- INFO:   Recommending compiler command ''$compiler_command''. ---"
 
 echo "$compiler_command" # the "real" output
-
-
