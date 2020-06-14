@@ -32,7 +32,6 @@ else
   DRY_compare_files_datetimestamps "$source_filename"         "$executable_pathname"
   DRY_compare_files_datetimestamps build.sh                   "$executable_pathname"
   DRY_compare_files_datetimestamps "$compile_script_basename" "$executable_pathname"
-  DRY_compare_files_datetimestamps "$source_filename"         "$executable_pathname"
 fi
 
 if [ -n "$do_compile" ] && [ "$do_compile" -gt 0 ]; then
