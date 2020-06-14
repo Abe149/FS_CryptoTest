@@ -3,8 +3,8 @@
 real_build_dir=___not_in_Git/build_dir.
 if [ ! -e "$real_build_dir" ]; then mkdir -p "$real_build_dir"; fi
 
-build_dir_symlink_name=build_dir.
-if [ ! -e "$build_dir_symlink_name" ]; then ln -s "$real_build_dir" "$build_dir_symlink_name"; fi # restating the target name instead of using '.' just in case the basename of "$real_build_dir" will evey be different from what is needed in the current dir.
+build_dir_symlink_name=Build_dir.
+if [ ! -e "$build_dir_symlink_name" ]; then ln -s "$real_build_dir" "$build_dir_symlink_name"; fi
 
 if [ -z "$CXX" ]; then CXX=please_autodetect; fi
 
@@ -20,7 +20,7 @@ do_compile=
 
 DRY_compare_files_datetimestamps() {
   if [ "$1" -nt "$2" ]; then
-    echo "''$1'' is newer than ''$2'', so we must compile."
+    echo "''$1'' is newer than ''$2'', so we must recompile."
     do_compile=1
   fi
 }
