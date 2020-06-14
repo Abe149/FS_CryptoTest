@@ -20,7 +20,7 @@ do_compile=
 
 DRY_compare_files_datetimestamps() {
   if [ "$1" -nt "$2" ]; then
-    echo "''$1'' is newer than ''$2'', so we must recompile."
+    echo "''$1'' is newer than ''$2'', so we must try to recompile."
     do_compile=1
   fi
 }

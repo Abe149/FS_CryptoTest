@@ -43,17 +43,19 @@ if [ "$VERBOSITY" -gt 2 ]; then
   stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
   stderr_echo "--- INFO:   ''\$6'' :''$6'' ---" # OPTIONAL: "--name=value"-style arg.
   stderr_echo "--- INFO:   ''\$7'' :''$7'' ---" # OPTIONAL: "--name=value"-style arg.
+  stderr_echo "--- INFO:   ''\$8'' :''$8'' ---" # OPTIONAL: "--name=value"-style arg.
 fi
 ### "--name=value"-style arg.s supported:
 ###   * "--compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags="<...>
 ###   * "--dry[_-]run"
 ###   * "--destination_basename[_-]is[_-]already[_-]descriptivized"
 ###   * "--force_replacement_of_old_executable"
+###   - "--force[_-]recompilation"
 
 flags= # empty by default
 # flags_have_been_explicitly_set= # a remnant of "happier days" from before I realized that Make was sabotaging me yet _again_ :-(
 flags_input_prefix='--compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags='
-for a in "$4" "$5" "$6" "$7"; do
+for a in "$4" "$5" "$6" "$7" "$8"; do
   if echo "$a" |   grep -q "^$flags_input_prefix"; then
     flags=`echo "$a"| sed s/^$flags_input_prefix//`
     if [ "$VERBOSITY" -gt 2 ]; then
@@ -65,7 +67,7 @@ done
 
 in_dryRun_mode=
 dryRun_arg='--dry[_-]run'
-for a in "$4" "$5" "$6" "$7"; do
+for a in "$4" "$5" "$6" "$7" "$8"; do
   if echo "$a" |   grep -q "^$dryRun_arg\$"; then # the "\$" at the end of the regex: to prevent inputs like "--dry-run=no" from triggering dry-run mode
     if [ "$VERBOSITY" -gt 2 ]; then
       stderr_echo "--- DEBUG:  dry-run mode activated [going to figure out flags first, then compute a nice basename for the executable] ---"
@@ -77,7 +79,7 @@ done
 ### this next "feature" [bug? ;-)] only makes sense in _non_-dryRun mode ["wet-run mode?"], but I see no need to issue an error and/or exit early if/when they both appear in the inputs in the same execution
 destination_basename_is_already_descriptivized=
 already_pretty_arg='--destination_basename[_-]is[_-]already[_-]descriptivized'
-for a in "$4" "$5" "$6" "$7"; do
+for a in "$4" "$5" "$6" "$7" "$8"; do
   if echo "$a" |   grep -q "^$already_pretty_arg\$"; then # the "\$" at the end of the regex: to prevent inputs like "--destination_basename_is_already_descriptivized=no" from "working" in an unwanted way [and breaking "everything" as a result ;-)]
     if [ "$VERBOSITY" -gt 2 ]; then
       stderr_echo "--- DEBUG:  caller [Make?] claims that the target basename has already been descriptivized ---"
@@ -88,7 +90,7 @@ done
 
 force_replacement_of_old_executable=
 force_arg='--force_replacement_of_old_executable'
-for a in "$4" "$5" "$6" "$7"; do
+for a in "$4" "$5" "$6" "$7" "$8"; do
   if echo "$a" |   grep -q "^$force_arg\$"; then # the "\$" at the end of the regex: to prevent inputs ending in something like "=no" from triggering this code
     if [ "$VERBOSITY" -gt 2 ]; then
       stderr_echo "--- DEBUG:  force-replacement-of-old-executable mode enabled. ---"
@@ -96,6 +98,18 @@ for a in "$4" "$5" "$6" "$7"; do
     force_replacement_of_old_executable=1
   fi
 done
+
+force_recompilation=
+force_arg='--force[_-]recompilation'
+for a in "$4" "$5" "$6" "$7" "$8"; do
+  if echo "$a" |   grep -q "^$force_arg\$"; then # the "\$" at the end of the regex: to prevent inputs ending in something like "=no" from triggering this code
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- DEBUG:  force-reompilation mode enabled. ---"
+    fi
+    force_reompilation=1
+  fi
+done
+
 
 
 ### TO DO: enable the disabling [?!? ;-)] of Unicode in the target basename
@@ -204,9 +218,23 @@ if [ -n "$in_dryRun_mode" ] && [ "$in_dryRun_mode" -gt 0 ]; then
     stderr_echo '--- INFO:     In dry-run mode, so about to output computed destination/target pathname with "prettified" basename, then exit. ---'
   fi
   echo "$real_target_directory/$descriptive_basename"
-  exit 0
+  exit 0 # WIP: anti-sourcing protection
 fi
 
+
+pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts="$real_target_directory"/intentionally-empty_files_for_timestamps_of_last_successful_recompilations
+
+if [ -z "$force_recompilation" ] || [ "$force_recompilation" -lt 1 ]; then
+  canary_pathname="$pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts/$descriptive_basename"
+  if [ -e "$canary_pathname" -a "$canary_pathname" -nt "$real_target_directory/$descriptive_basename" ]; then
+    stderr_echo "Found a canary file at ''"$canary_pathname"'' which seems newer than the target at ''"$real_target_directory/$descriptive_basename"'', so suppressing recompilation."
+    stderr_echo 'If you want to suppress this suppression, then either:'
+    stderr_echo '  * delete the canary file,'
+    stderr_echo '  * use the "--force-recompilation" flag,'
+    stderr_echo '  * or, if you are _really_ sadistic, do _both_ of the preceding.'
+    exit 0 # WIP: anti-sourcing protection
+  fi
+fi
 
 
 mkdir -p "$target_directory_for_new_files" || exit 1
@@ -228,7 +256,6 @@ if [ $compiler_command_result -ne 0 ]; then
   exit $compiler_command_result
 fi
 
-pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts="$real_target_directory"/intentionally-empty_files_for_timestamps_of_last_successful_recompilations
 mkdir -p "$pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts" && \
 touch    "$pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts"/"$descriptive_basename"
 
