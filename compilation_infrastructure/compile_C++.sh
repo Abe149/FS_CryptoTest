@@ -39,18 +39,18 @@ stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style a
 stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
 stderr_echo "--- INFO:   ''\$6'' :''$6'' ---" # OPTIONAL: "--name=value"-style arg.
 ### "--name=value"-style arg.s supported:
-###   * "--compiler[_-]flags="<...>
+###   * "--compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags="<...>
 ###   * "--dry[_-]run"
 ###   * "--destination_basename[_-]is[_-]already[_-]descriptivized"
 
 flags= # empty by default
-flags_have_been_explicitly_set=
-flags_input_prefix='--compiler[_-]flags='
+# flags_have_been_explicitly_set= # a remnant of "happier days" from before I realized that Make was sabotaging me yet _again_ :-(
+flags_input_prefix='--compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags='
 for a in "$4" "$5" "$6"; do
   if echo "$a" |   grep -q "^$flags_input_prefix"; then
     flags=`echo "$a"| sed s/^$flags_input_prefix//`
     stderr_echo "--- DEBUG:  compiler flags: flags=''$flags'' ---"
-    flags_have_been_explicitly_set=1
+    # flags_have_been_explicitly_set=1 # a remnant of "happier days" from before I realized that Make was sabotaging me yet _again_ :-(
   fi
 done
 
@@ -128,7 +128,8 @@ stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
 #   "$compiler_command" --version 2>&1 | grep -v '^$' | sed -e 's/^/--- INFO:     /' -e 's/$/ ---/'
 # fi
 
-if [ -n "$flags_have_been_explicitly_set" -a "$flags_have_been_explicitly_set" -gt 0 ]; then
+# if [ -n "$flags_have_been_explicitly_set" -a "$flags_have_been_explicitly_set" -gt 0 ]; then
+if [ -n "$flags" ]; then
   stderr_echo "--- INFO:   Using provided compiler flags ''$flags''."
 else
   stderr_echo '--- INFO:   Going to try to autodetect suitable compiler flags. ---'
@@ -146,8 +147,12 @@ real_target_directory="`dirname "$2"`"
 target_directory_for_new_files="`dirname "$2"`"/new/
 original_target_basename="`basename "$2"`"
 
-descriptive_basename="`"$my_installation_dir"/compute_C++_target_basename.sh "$original_target_basename" --compiler_command="$compiler_command" --compiler_flags="$flags" --source_pathname="$1"`"
-
+if [ -n "$destination_basename_is_already_descriptivized" ] && [ "$destination_basename_is_already_descriptivized" -gt 0 ]; then
+  descriptive_basename="$original_target_basename" # in this context, "original" is relative to the current execution of this script
+else
+  descriptive_basename="`"$my_installation_dir"/compute_C++_target_basename.sh "$original_target_basename" --compiler_command="$compiler_command" --compiler_flags="$flags" --source_pathname="$1"`"
+fi
+stderr_echo "--- DEBUG:  descriptive_basename=''$descriptive_basename''."
 
 
 if [ -n "$in_dryRun_mode" ] && [ "$in_dryRun_mode" -gt 0 ]; then
@@ -192,6 +197,7 @@ stderr_echo "--- INFO:     RESULT: CURRENT EXECUTABLE: `ls -l "$real_target_dire
 ### using a symbolic link here should be at-least-mostly-OK, since we are forcing symlink regeneration upon recompilation; using a symlink for this but _not_ doing the forcing part might screw up Make`s ability to detect that the program needs to be recompiled: Make might "think" the program should _always_ be recompiled, i.e. even though the source code hasn`t changed, b/c only the "real executable" had gotten an updated timestamp upon the last recompilation [i.e. the symlink had _not_ been updated at that time]
 cd "$real_target_directory"
 # ln -f -s "`basename "$target_with_descriptive_name"`" "`basename "$2"`" # preserving this line in case its replacement on the next line ever turns out to be wrong
-rm -f                            "$original_target_basename" # this should solve the problem of occassional failures to overwrite an old symlink
-ln -f -s "$descriptive_basename" "$original_target_basename"
+symlink_name=symlink_to_potentially-old-timestamped_executable_with_same_basename_and_content_as_most-recent_successful_build
+rm -f                            "$symlink_name" # this should solve the problem of occassional failures to overwrite an old symlink
+ln -f -s "$descriptive_basename" "$symlink_name"
 cd - >/dev/null
