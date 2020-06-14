@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+DEFAULT_VERBOSITY_LEVEL=1 # do NOT set this to an empty string; do NOT comment this line out or delete it
+
+if [ -z "$VERBOSITY" ]; then VERBOSITY=$DEFAULT_VERBOSITY_LEVEL; fi
+
 ### --- vvv --- functions --- vvv --- ###
 
 ## --- load shared functions --- ##
@@ -22,7 +26,7 @@ test_alleged_Cxx_compiler() {
   executable_extension=.exe # should work fine on Unix, even though not required "there"
 
   if [ -e "$test_file_base_pathname""$source_extension" -o -e "$test_file_base_pathname""$executable_extension" ]; then
-    echo "FATAL ERROR: either ''$test_file_base_pathname""$source_extension'' or ''$test_file_base_pathname""$executable_extension'' or both already existed."
+    stderr_echo "FATAL ERROR: either ''$test_file_base_pathname""$source_extension'' or ''$test_file_base_pathname""$executable_extension'' or both already existed."
     exit 1 # TO DO: add anti-sourcing protection
   fi
 
@@ -51,9 +55,13 @@ THE_END
 
 compiler_command=`which "$1"` # NOTE: simple "$1": no prefix, no nothing
 if test -n "$compiler_command" && is_executable_and_not_a_directory "$compiler_command" && test_alleged_Cxx_compiler "$compiler_command"; then # if the alleged compiler arg. is not provided, or points to something not executable or a directory
-  stderr_echo "--- INFO:   Using provided compiler command ''$1'', found at ''$compiler_command''. ---"
+  if [ "$VERBOSITY" -gt 2 ]; then
+    stderr_echo "--- INFO:   Using provided compiler command ''$1'', found at ''$compiler_command''. ---"
+  fi
 else
-  stderr_echo '--- INFO:   Going to try to autodetect the C++ compiler command. ---'
+  if [ "$VERBOSITY" -gt 2 ]; then
+    stderr_echo '--- INFO:   Going to try to autodetect the C compiler command. ---'
+  fi
   old_compiler_command="$compiler_command"
 
 # for alleged_compiler_command in INTENTIONALLY-INVALID_COMMAND_NAME ls c++ CC g++ clang++; do # torture-testing version of the "for" loop header
@@ -65,7 +73,9 @@ else
     fi
   done
   if [ "$compiler_command" != "$old_compiler_command" ]; then
-    stderr_echo "--- INFO:   Auto-chose ''$compiler_command'' as the compiler command to use. ---"
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- INFO:   Auto-chose ''$compiler_command'' as the compiler command to use. ---"
+    fi
   fi
 fi
 # check that by now "$compiler_command" is valid, and "die" if it isn`t
@@ -74,6 +84,8 @@ if ! is_executable_and_not_a_directory "$compiler_command"; then
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
-stderr_echo "--- INFO:   Recommending compiler command ''$compiler_command''. ---"
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- INFO:   Recommending compiler command ''$compiler_command''. ---"
+fi
 
 echo "$compiler_command" # the "real" output
