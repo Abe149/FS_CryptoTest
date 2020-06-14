@@ -14,6 +14,8 @@ executable_basename=`./compile_C++.sh "$source_filename" "$base_basename" --comp
 
 executable_pathname="$build_dir_symlink_name/$executable_basename"
 
+compile_script_basename=compile_C++.sh
+
 do_compile=
 
 if [ ! -e "$executable_pathname" ]; then
@@ -28,15 +30,15 @@ else
     echo "''$source_filename'' is newer than ''build.sh'',"   "so we must compile."
     do_compile=1
   fi
-  if [ "$source_filename" -nt compile.sh ]; then
-    echo "''$source_filename'' is newer than ''compile.sh'',"" so we must compile."
+  if [ "$source_filename" -nt "$compile_script_basename" ]; then
+    echo "''$source_filename'' is newer than ''$compile_script_basename'',"" so we must compile."
     do_compile=1
   fi
 fi
 
 if [ -n "$do_compile" ] && [ "$do_compile" -gt 0 ]; then
 
-  ./compile_C++.sh "$source_filename" "$executable_pathname" --compiler_command="$CXX" --compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags="$CXXFLAGS" --destination_basename_is_already_descriptivized
+  ./"$compile_script_basename" "$source_filename" "$executable_pathname" --compiler_command="$CXX" --compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags="$CXXFLAGS" --destination_basename_is_already_descriptivized
 
 else
 
