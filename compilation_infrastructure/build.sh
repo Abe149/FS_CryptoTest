@@ -18,22 +18,21 @@ compile_script_basename=compile_C++.sh
 
 do_compile=
 
+DRY_compare_files_datetimestamps() {
+  if [ "$1" -nt "$2" ]; then
+    echo "''$1'' is newer than ''$2'', so we must compile."
+    do_compile=1
+  fi
+}
+
 if [ ! -e "$executable_pathname" ]; then
   echo "''$executable_pathname'' does not yet exist, so we must compile."
   do_compile=1
 else
-  if [ "$source_filename" -nt "$executable_pathname" ]; then
-    echo "''$source_filename'' is newer than ''$executable_pathname'', so we must compile."
-    do_compile=1
-  fi
-  if [ "$source_filename" -nt build.sh ]; then
-    echo "''$source_filename'' is newer than ''build.sh'',"   "so we must compile."
-    do_compile=1
-  fi
-  if [ "$source_filename" -nt "$compile_script_basename" ]; then
-    echo "''$source_filename'' is newer than ''$compile_script_basename'',"" so we must compile."
-    do_compile=1
-  fi
+  DRY_compare_files_datetimestamps "$source_filename"         "$executable_pathname"
+  DRY_compare_files_datetimestamps build.sh                   "$executable_pathname"
+  DRY_compare_files_datetimestamps "$compile_script_basename" "$executable_pathname"
+  DRY_compare_files_datetimestamps "$source_filename"         "$executable_pathname"
 fi
 
 if [ -n "$do_compile" ] && [ "$do_compile" -gt 0 ]; then
