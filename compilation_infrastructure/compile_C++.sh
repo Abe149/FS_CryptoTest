@@ -2,9 +2,12 @@
 
 ### --- vvv --- "tuneables" --- vvv --- ###
 FLAGS_TO_USE_WHEN_COMPILER_SEEMS_COMPATIBLE_WITH_GCC_FLAGS=-O2
+DEFAULT_VERBOSITY_LEVEL=1 # do NOT set this to an empty string; do NOT comment this line out or delete it
 ### --- ^^^ --- "tuneables" --- ^^^ --- ###
 
 
+
+if [ -z "$VERBOSITY" ]; then VERBOSITY=$DEFAULT_VERBOSITY_LEVEL; fi
 
 Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX() {
 # ls -dl "$1" | sed 's/^.* -> //' # will fail _miserably_ when processing the valid input '.'
@@ -29,15 +32,17 @@ sanitize_filename() {
 
 
 
-stderr_echo "--- INFO: in ''$0'': ---"
-stderr_echo "--- INFO:   ''\$@'' :[$@] ---"
-stderr_echo "--- INFO:   ''\$0'' :''$0'' ---"
-stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: source
-stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: destination
-stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # REQUIRED: alleged compiler-driver command
-stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
-stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
-stderr_echo "--- INFO:   ''\$6'' :''$6'' ---" # OPTIONAL: "--name=value"-style arg.
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- INFO: in ''$0'': ---"
+  stderr_echo "--- INFO:   ''\$@'' :[$@] ---"
+  stderr_echo "--- INFO:   ''\$0'' :''$0'' ---"
+  stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: source
+  stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: destination
+  stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # REQUIRED: alleged compiler-driver command
+  stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
+  stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
+  stderr_echo "--- INFO:   ''\$6'' :''$6'' ---" # OPTIONAL: "--name=value"-style arg.
+fi
 ### "--name=value"-style arg.s supported:
 ###   * "--compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags="<...>
 ###   * "--dry[_-]run"
@@ -49,7 +54,9 @@ flags_input_prefix='--compiler_flags_to_use_if_nonempty___if_empty_then_try_to_g
 for a in "$4" "$5" "$6"; do
   if echo "$a" |   grep -q "^$flags_input_prefix"; then
     flags=`echo "$a"| sed s/^$flags_input_prefix//`
-    stderr_echo "--- DEBUG:  compiler flags: flags=''$flags'' ---"
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- DEBUG:  compiler flags: flags=''$flags'' ---"
+    fi
     # flags_have_been_explicitly_set=1 # a remnant of "happier days" from before I realized that Make was sabotaging me yet _again_ :-(
   fi
 done
@@ -58,7 +65,9 @@ in_dryRun_mode=
 dryRun_arg='--dry[_-]run'
 for a in "$4" "$5" "$6"; do
   if echo "$a" |   grep -q "^$dryRun_arg\$"; then # the "\$" at the end of the regex: to prevent inputs like "--dry-run=no" from triggering dry-run mode
-    stderr_echo "--- DEBUG:  dry-run mode activated [going to figure out flags first, then compute a nice basename for the executable] ---"
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- DEBUG:  dry-run mode activated [going to figure out flags first, then compute a nice basename for the executable] ---"
+    fi
     in_dryRun_mode=1
   fi
 done
@@ -68,7 +77,9 @@ destination_basename_is_already_descriptivized=
 already_pretty_arg='--destination_basename[_-]is[_-]already[_-]descriptivized'
 for a in "$4" "$5" "$6"; do
   if echo "$a" |   grep -q "^$already_pretty_arg\$"; then # the "\$" at the end of the regex: to prevent inputs like "--destination_basename_is_already_descriptivized=no" from "working" in an unwanted way [and breaking "everything" as a result ;-)]
-    stderr_echo "--- DEBUG:  caller [Make?] claims that the target basename has already been descriptivized ---"
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- DEBUG:  caller [Make?] claims that the target basename has already been descriptivized ---"
+    fi
     destination_basename_is_already_descriptivized=1
   fi
 done
@@ -83,8 +94,10 @@ if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
-stderr_echo "--- INFO:   About to list the pre-compilation executable, if it exists ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
-stderr_echo "--- INFO:     RESULT: OLD EXECUTABLE: `ls -l "$2" 2>&1` ---"
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- INFO:   About to list the pre-compilation executable, if it exists ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
+  stderr_echo "--- INFO:     RESULT: OLD EXECUTABLE: `ls -l "$2" 2>&1` ---"
+fi
 
 
 
@@ -94,13 +107,19 @@ alleged_compiler_command=
 if echo "$3" | grep -q "^$COMPILER_INPUT_PREFIX"; then
   alleged_compiler_command=`echo "$3"| sed s/^$COMPILER_INPUT_PREFIX//`
 fi
-stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---"
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---"
+fi
 
 compiler_command=`which "$alleged_compiler_command"`
 if test -n "$compiler_command" && is_executable_and_not_a_directory "$compiler_command"; then # if the alleged compiler arg. is not provided, or points to something not executable or a directory
-  stderr_echo "--- INFO:   Using provided compiler command ''$3'', found at ''$compiler_command''. ---"
+  if [ "$VERBOSITY" -gt 2 ]; then
+    stderr_echo "--- INFO:   Using provided compiler command ''$3'', found at ''$compiler_command''. ---"
+  fi
 else
-  stderr_echo '--- INFO:   Going to try to autodetect the C++ compiler command. ---'
+  if [ "$VERBOSITY" -gt 2 ]; then
+    stderr_echo '--- INFO:   Going to try to autodetect the C++ compiler command. ---'
+  fi
   old_compiler_command="$compiler_command"
   for alleged_compiler_command in c++ CC g++ clang++; do
     alleged_compiler_fullPath=`which $alleged_compiler_command`
@@ -109,7 +128,7 @@ else
       break
     fi
   done
-  if [ "$compiler_command" != "$old_compiler_command" ]; then
+  if [ "$VERBOSITY" -gt 2 ] && [ "$compiler_command" != "$old_compiler_command" ]; then
     stderr_echo "--- INFO:   Auto-chose ''$compiler_command'' as the compiler command to use. ---"
   fi
 fi
@@ -120,7 +139,9 @@ if ! is_executable_and_not_a_directory "$compiler_command"; then
   exit 1 # TO DO: add anti-sourcing protection, if this can be done w/o promoting the minimum shell requirement from "sh" to "bash"
 fi
 
-stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
+fi
 
 ### commented out -- at least for now...  maybe move it down to after dry-run detection, where the output to stdout would be safe? -- so as to enable the "--dry-run" flags [for Make to use when it wants to get a target pathname from this script]
 # if "$compiler_command" --version 2>&1 >/dev/null; then
@@ -130,17 +151,27 @@ stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
 
 # if [ -n "$flags_have_been_explicitly_set" -a "$flags_have_been_explicitly_set" -gt 0 ]; then
 if [ -n "$flags" ]; then
-  stderr_echo "--- INFO:   Using provided compiler flags ''$flags''."
+  if [ "$VERBOSITY" -gt 2 ]; then
+    stderr_echo "--- INFO:   Using provided compiler flags ''$flags''."
+  fi
 else
-  stderr_echo '--- INFO:   Going to try to autodetect suitable compiler flags. ---'
+  if [ "$VERBOSITY" -gt 2 ]; then
+    stderr_echo '--- INFO:   Going to try to autodetect suitable compiler flags. ---'
+  fi
   if "$compiler_command" --version 2>&1 | grep -q -E '(GCC|clang)'; then
-    stderr_echo '--- INFO:     Detected a compiler driver that _is_ compatible with GCC compiler flags. ---'
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo '--- INFO:     Detected a compiler driver that _is_ compatible with GCC compiler flags. ---'
+    fi
     flags="$FLAGS_TO_USE_WHEN_COMPILER_SEEMS_COMPATIBLE_WITH_GCC_FLAGS"
   else
-    stderr_echo '--- INFO:     Detected a compiler driver that is _not_ compatible with GCC compiler flags. ---'
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo '--- INFO:     Detected a compiler driver that is _not_ compatible with GCC compiler flags. ---'
+    fi
   fi
 fi
-stderr_echo   "--- INFO:   Using compiler flags ''$flags''."
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo   "--- INFO:   Using compiler flags ''$flags''."
+fi
 
 
 real_target_directory="`dirname "$2"`"
@@ -152,8 +183,9 @@ if [ -n "$destination_basename_is_already_descriptivized" ] && [ "$destination_b
 else
   descriptive_basename="`"$my_installation_dir"/compute_C++_target_basename.sh "$original_target_basename" --compiler_command="$compiler_command" --compiler_flags="$flags" --source_pathname="$1"`"
 fi
-stderr_echo "--- DEBUG:  descriptive_basename=''$descriptive_basename''."
-
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- DEBUG:  descriptive_basename=''$descriptive_basename''."
+fi
 
 if [ -n "$in_dryRun_mode" ] && [ "$in_dryRun_mode" -gt 0 ]; then
   stderr_echo '--- INFO:     In dry-run mode, so about to output computed destination/target pathname with "prettified" basename, then exit. ---'
@@ -168,18 +200,24 @@ mkdir -p "$target_directory_for_new_files" || exit 1
 target_with_descriptive_name="$target_directory_for_new_files"/"$descriptive_basename"
 
 # embedded assumption: the compiler`s driver "understands" "-o <...>" to mean "output to this pathname"
-stderr_echo '--- INFO:   About to execute "'"$compiler_command"\" \"$1\" -o \"$target_with_descriptive_name\" \"$flags\" ---
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo '--- INFO:   About to execute "'"$compiler_command"\" \"$1\" -o \"$target_with_descriptive_name\" \"$flags\" ---
+fi
 "$compiler_command" "$1" -o "$target_with_descriptive_name" "$flags"
 compiler_command_result=$? # we need/want to keep this one "safe" so we can use it in a not-immediately-thereafter context
-stderr_echo "--- INFO:     RESULT: Compiler exit/result code: $compiler_command_result ---"
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- INFO:     RESULT: Compiler exit/result code: $compiler_command_result ---"
+fi
 
 if [ $compiler_command_result -ne 0 ]; then
   stderr_echo "--- ERROR: compiler exit/result code: $compiler_command_result ---"
   exit $compiler_command_result
 fi
 
-stderr_echo "--- INFO:   About to list the post-compilation executable [definitely new] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
-stderr_echo "--- INFO:     RESULT: NEW EXECUTABLE: `ls -l "$target_with_descriptive_name" 2>&1` ---"
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- INFO:   About to list the post-compilation executable [definitely new] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
+  stderr_echo "--- INFO:     RESULT: NEW EXECUTABLE: `ls -l "$target_with_descriptive_name" 2>&1` ---"
+fi
 
 ### overwrite the old executable only if it is different from the new one; compiling in this "careful" way preserves the old timestamp of the old executable if/when the new executable file`s "data fork" is the same as that of the old one ###
 cd "$target_directory_for_new_files"
@@ -190,8 +228,10 @@ else
 fi
 cd - >/dev/null
 
-stderr_echo "--- INFO:   About to list the post-compilation executable [possibly ''old'' if the new one was byte-for-byte identical] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
-stderr_echo "--- INFO:     RESULT: CURRENT EXECUTABLE: `ls -l "$real_target_directory/$descriptive_basename" 2>&1` ---"
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- INFO:   About to list the post-compilation executable [possibly ''old'' if the new one was byte-for-byte identical] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
+  stderr_echo "--- INFO:     RESULT: CURRENT EXECUTABLE: `ls -l "$real_target_directory/$descriptive_basename" 2>&1` ---"
+fi
 
 ### --- add/refresh the symlink --- ###
 ### using a symbolic link here should be at-least-mostly-OK, since we are forcing symlink regeneration upon recompilation; using a symlink for this but _not_ doing the forcing part might screw up Make`s ability to detect that the program needs to be recompiled: Make might "think" the program should _always_ be recompiled, i.e. even though the source code hasn`t changed, b/c only the "real executable" had gotten an updated timestamp upon the last recompilation [i.e. the symlink had _not_ been updated at that time]

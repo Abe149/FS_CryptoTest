@@ -41,6 +41,6 @@ if [ -n "$do_compile" ] && [ "$do_compile" -gt 0 ]; then
 
 else
 
-  echo 'No reason to recompile was detected.'
+  echo 'No reason to recompile was detected.  Try something like "VERBOSITY=9 ./build.sh" if you want/need to figure out why [not].'
 
 fi

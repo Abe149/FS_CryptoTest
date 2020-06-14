@@ -5,6 +5,10 @@ ENABLE_UTF8_IN_FILENAMES=1 # the default; it is _not_ recommended to edit this t
                            # i.e. a way to override a 1 here with a 0 elsewhere --
                            # there is _no_ mechanism in place to ENable Unicode generation if/when it`s not enabled _here_
 
+DEFAULT_VERBOSITY_LEVEL=1 # do NOT set this to an empty string; do NOT comment this line out or delete it
+
+if [ -z "$VERBOSITY" ]; then VERBOSITY=$DEFAULT_VERBOSITY_LEVEL; fi
+
 ### --- vvv --- functions --- vvv --- ###
 
 ## --- load shared functions --- ##
@@ -30,13 +34,15 @@ sanitize_filename() {
 
 
 
-stderr_echo "--- INFO: in ''$0'': ---"
-stderr_echo "--- INFO:   ''\$@'' :[$@] ---"
-stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: base basename [_no_, I did _not_ just now stutter ;-)]
-stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: "--name=value"-style arg.
-stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # OPTIONAL: "--name=value"-style arg.
-stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
-stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- INFO: in ''$0'': ---"
+  stderr_echo "--- INFO:   ''\$@'' :[$@] ---"
+  stderr_echo "--- INFO:   ''\$1'' :''$1'' ---" # REQUIRED: base basename [_no_, I did _not_ just now stutter ;-)]
+  stderr_echo "--- INFO:   ''\$2'' :''$2'' ---" # REQUIRED: "--name=value"-style arg.
+  stderr_echo "--- INFO:   ''\$3'' :''$3'' ---" # OPTIONAL: "--name=value"-style arg.
+  stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
+  stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
+fi
 ### "--name=value"-style arg.s supported:
 ###   * "--compiler[_-]command="<...> : _MANDATORY_,
 ###     which is why #3 [above] is "REQUIRED":
@@ -71,7 +77,9 @@ compiler_input_prefix='--compiler[_-]command='
 for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" | grep -q "^$compiler_input_prefix"; then
     alleged_compiler_command=`echo "$a"| sed s/^$compiler_input_prefix//`
-    stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---" # reminder: IMPORTANT: in _this_ script, _all_ debug/info/test/whatever output _must_ _not_ go to std. _out_
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- DEBUG:  alleged_compiler_command=''$alleged_compiler_command'' ---" # reminder: IMPORTANT: in _this_ script, _all_ debug/info/test/whatever output _must_ _not_ go to std. _out_
+    fi
   fi
 done
 
@@ -81,7 +89,9 @@ flags_input_prefix='--compiler[_-]flags='
 for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" |   grep -q "^$flags_input_prefix"; then
     flags=`echo "$a"| sed s/^$flags_input_prefix//`
-    stderr_echo "--- DEBUG:  compiler flags: flags=''$flags'' ---"
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- DEBUG:  compiler flags: flags=''$flags'' ---"
+    fi
     flags_have_been_explicitly_set=1
   fi
 done
@@ -91,13 +101,17 @@ pathname_input_prefix='--source[_-]pathname='
 for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" |      grep -q "^$pathname_input_prefix"; then
     pathname=`echo "$a"| sed s/^$pathname_input_prefix//`
-    stderr_echo "--- DEBUG:  source-code pathname: ''$pathname'' ---"
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- DEBUG:  source-code pathname: ''$pathname'' ---"
+    fi
   fi
 done
 
 for a in "$2" "$3" "$4" "$5"; do
   if echo "$a" | grep -q '^--disable_generation_of_UTF-8_in_computed_basename$'; then
-    stderr_echo "--- DEBUG:   disabled UTF-8 [Unicode] generation/conversion ---"
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- DEBUG:   disabled UTF-8 [Unicode] generation/conversion ---"
+    fi
     ENABLE_UTF8_IN_FILENAMES=0
   fi
 done
@@ -110,12 +124,18 @@ if [ -z "$flags_have_been_explicitly_set" ] || [ "$flags_have_been_explicitly_se
   stderr_echo "--- ERROR:  this script [$0] _requires_ that its caller give it the compiler flags that are going to be used in compilation, even if that string is a/the empty string."
   exit 1
 else
-  stderr_echo "--- INFO:   Using [non-fallback] compiler flags ''$flags''."
+  if [ "$VERBOSITY" -gt 2 ]; then
+    stderr_echo "--- INFO:   Using [non-fallback] compiler flags ''$flags''."
+  fi
 fi
-stderr_echo   "--- INFO:   Using compiler flags ''$flags''."
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo   "--- INFO:   Using compiler flags ''$flags''."
+fi
 
 compiler_command=$($(dirname "`Q_and_D_readlink_substitute_needed_due_to_lack_of_readlink_in_POSIX "$0"`")/validate_C++_compiler_or_auto-choose_one.sh "$alleged_compiler_command")
-stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
+if [ "$VERBOSITY" -gt 2 ]; then
+  stderr_echo "--- INFO:   Using compiler command ''$compiler_command''. ---"
+fi
 
 
 base_basename="$1"
