@@ -188,7 +188,9 @@ if [ "$VERBOSITY" -gt 2 ]; then
 fi
 
 if [ -n "$in_dryRun_mode" ] && [ "$in_dryRun_mode" -gt 0 ]; then
-  stderr_echo '--- INFO:     In dry-run mode, so about to output computed destination/target pathname with "prettified" basename, then exit. ---'
+  if [ "$VERBOSITY" -gt 1 ]; then
+    stderr_echo '--- INFO:     In dry-run mode, so about to output computed destination/target pathname with "prettified" basename, then exit. ---'
+  fi
   echo "$real_target_directory/$descriptive_basename"
   exit 0
 fi
@@ -240,4 +242,7 @@ cd "$real_target_directory"
 symlink_name=symlink_to_potentially-old-timestamped_executable_with_same_basename_and_content_as_most-recent_successful_build
 rm -f                            "$symlink_name" # this should solve the problem of occassional failures to overwrite an old symlink
 ln -f -s "$descriptive_basename" "$symlink_name"
+if [ "$VERBOSITY" -gt 0 ]; then
+  ls -l "$symlink_name"
+fi
 cd - >/dev/null

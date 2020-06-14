@@ -37,6 +37,8 @@ fi
 
 if [ -n "$do_compile" ] && [ "$do_compile" -gt 0 ]; then
 
+  echo
+
   ./"$compile_script_basename" "$source_filename" "$executable_pathname" --compiler_command="$CXX" --compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags="$CXXFLAGS" --destination_basename_is_already_descriptivized
 
 else
@@ -44,3 +46,6 @@ else
   echo 'No reason to recompile was detected.  Try something like "VERBOSITY=9 ./build.sh" if you want/need to figure out why [not].'
 
 fi
+
+echo
+ls -l "$executable_pathname"
