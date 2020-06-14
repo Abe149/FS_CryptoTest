@@ -42,16 +42,18 @@ if [ "$VERBOSITY" -gt 2 ]; then
   stderr_echo "--- INFO:   ''\$4'' :''$4'' ---" # OPTIONAL: "--name=value"-style arg.
   stderr_echo "--- INFO:   ''\$5'' :''$5'' ---" # OPTIONAL: "--name=value"-style arg.
   stderr_echo "--- INFO:   ''\$6'' :''$6'' ---" # OPTIONAL: "--name=value"-style arg.
+  stderr_echo "--- INFO:   ''\$7'' :''$7'' ---" # OPTIONAL: "--name=value"-style arg.
 fi
 ### "--name=value"-style arg.s supported:
 ###   * "--compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags="<...>
 ###   * "--dry[_-]run"
 ###   * "--destination_basename[_-]is[_-]already[_-]descriptivized"
+###   * "--force_replacement_of_old_executable"
 
 flags= # empty by default
 # flags_have_been_explicitly_set= # a remnant of "happier days" from before I realized that Make was sabotaging me yet _again_ :-(
 flags_input_prefix='--compiler_flags_to_use_if_nonempty___if_empty_then_try_to_guess_good_flags='
-for a in "$4" "$5" "$6"; do
+for a in "$4" "$5" "$6" "$7"; do
   if echo "$a" |   grep -q "^$flags_input_prefix"; then
     flags=`echo "$a"| sed s/^$flags_input_prefix//`
     if [ "$VERBOSITY" -gt 2 ]; then
@@ -63,7 +65,7 @@ done
 
 in_dryRun_mode=
 dryRun_arg='--dry[_-]run'
-for a in "$4" "$5" "$6"; do
+for a in "$4" "$5" "$6" "$7"; do
   if echo "$a" |   grep -q "^$dryRun_arg\$"; then # the "\$" at the end of the regex: to prevent inputs like "--dry-run=no" from triggering dry-run mode
     if [ "$VERBOSITY" -gt 2 ]; then
       stderr_echo "--- DEBUG:  dry-run mode activated [going to figure out flags first, then compute a nice basename for the executable] ---"
@@ -75,7 +77,7 @@ done
 ### this next "feature" [bug? ;-)] only makes sense in _non_-dryRun mode ["wet-run mode?"], but I see no need to issue an error and/or exit early if/when they both appear in the inputs in the same execution
 destination_basename_is_already_descriptivized=
 already_pretty_arg='--destination_basename[_-]is[_-]already[_-]descriptivized'
-for a in "$4" "$5" "$6"; do
+for a in "$4" "$5" "$6" "$7"; do
   if echo "$a" |   grep -q "^$already_pretty_arg\$"; then # the "\$" at the end of the regex: to prevent inputs like "--destination_basename_is_already_descriptivized=no" from "working" in an unwanted way [and breaking "everything" as a result ;-)]
     if [ "$VERBOSITY" -gt 2 ]; then
       stderr_echo "--- DEBUG:  caller [Make?] claims that the target basename has already been descriptivized ---"
@@ -84,6 +86,16 @@ for a in "$4" "$5" "$6"; do
   fi
 done
 
+force_replacement_of_old_executable=
+force_arg='--force_replacement_of_old_executable'
+for a in "$4" "$5" "$6" "$7"; do
+  if echo "$a" |   grep -q "^$force_arg\$"; then # the "\$" at the end of the regex: to prevent inputs ending in something like "=no" from triggering this code
+    if [ "$VERBOSITY" -gt 2 ]; then
+      stderr_echo "--- DEBUG:  force-replacement-of-old-executable mode enabled. ---"
+    fi
+    force_replacement_of_old_executable=1
+  fi
+done
 
 
 ### TO DO: enable the disabling [?!? ;-)] of Unicode in the target basename
@@ -216,6 +228,10 @@ if [ $compiler_command_result -ne 0 ]; then
   exit $compiler_command_result
 fi
 
+pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts="$real_target_directory"/intentionally-empty_files_for_timestamps_of_last_successful_recompilations
+mkdir -p "$pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts" && \
+touch    "$pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts"/"$descriptive_basename"
+
 if [ "$VERBOSITY" -gt 2 ]; then
   stderr_echo "--- INFO:   About to list the post-compilation executable [definitely new] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
   stderr_echo "--- INFO:     RESULT: NEW EXECUTABLE: `ls -l "$target_with_descriptive_name" 2>&1` ---"
@@ -223,10 +239,14 @@ fi
 
 ### overwrite the old executable only if it is different from the new one; compiling in this "careful" way preserves the old timestamp of the old executable if/when the new executable file`s "data fork" is the same as that of the old one ###
 cd "$target_directory_for_new_files"
-if cmp -s "$descriptive_basename" ../"$descriptive_basename"; then
-  stderr_echo '--- NOTICE:    _intentionally_ not updating the build target, so as to preserve its file timestamp, since recompilation produced an identical executable; this may cause unexpected behavior in the following case: the source code file`s timestamp has been updated -- but that file`s _content_ has not changed -- since the last recompilation with that source-code content, and/or the Makefile has a newer timetamp than that of the relevant executable file; in that case, repeated invocations of "make" will recompile the code, since the newer-but-identical-content executable file will _not_ be used to replace the older-and-identical-content executable file. ---'
-else
+if [ -n "$force_replacement_of_old_executable" ] && [ "$force_replacement_of_old_executable" -gt 0 ]; then
   mv -f "$descriptive_basename" ../
+else
+  if cmp -s "$descriptive_basename" ../"$descriptive_basename"; then
+    stderr_echo '--- NOTICE:    _intentionally_ not updating the build target, so as to preserve its file timestamp, since recompilation produced an identical executable.'
+  else
+    mv -f "$descriptive_basename" ../
+  fi
 fi
 cd - >/dev/null
 
