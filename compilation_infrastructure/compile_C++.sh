@@ -222,16 +222,19 @@ if [ -n "$in_dryRun_mode" ] && [ "$in_dryRun_mode" -gt 0 ]; then
 fi
 
 
-pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts="$real_target_directory"/intentionally-empty_files_for_timestamps_of_last_successful_recompilations
+pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts="$real_target_directory"/canary_files_for___tracking_last_successful_recompilations___and_for___preventing_excessive_recompilations_due_to_changes_in_the_build-and-compile_scripts
 
 if [ -z "$force_recompilation" ] || [ "$force_recompilation" -lt 1 ]; then
   canary_pathname="$pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts/$descriptive_basename"
-  if [ -e "$canary_pathname" -a "$canary_pathname" -nt "$real_target_directory/$descriptive_basename" ]; then
-    stderr_echo "Found a canary file at ''"$canary_pathname"'' which seems newer than the target at ''"$real_target_directory/$descriptive_basename"'', so suppressing recompilation."
+  if [ -e "$canary_pathname" ] && cmp -s "$canary_pathname" "$real_target_directory/$descriptive_basename"; then
+    stderr_echo "Found a canary file at ''"$canary_pathname"'' which seems to have the same data-fork content as the target at ''"$real_target_directory/$descriptive_basename"'', so suppressing recompilation."
+    stderr_echo
     stderr_echo 'If you want to suppress this suppression, then either:'
-    stderr_echo '  * delete the canary file,'
+    stderr_echo '  * delete/rename/move/mutilate the canary file,'
     stderr_echo '  * use the "--force-recompilation" flag,'
     stderr_echo '  * or, if you are _really_ sadistic, do _both_ of the preceding.'
+    stderr_echo
+    ls -l "$canary_pathname"
     exit 0 # WIP: anti-sourcing protection
   fi
 fi
@@ -256,8 +259,11 @@ if [ $compiler_command_result -ne 0 ]; then
   exit $compiler_command_result
 fi
 
+pathname_of_new_canary_file="$pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts/$descriptive_basename"
 mkdir -p "$pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts" && \
-touch    "$pathname_of_kludge_dir_to_prevent_excessive_recompilation_attempts"/"$descriptive_basename"
+ln -v "$target_with_descriptive_name" "$pathname_of_new_canary_file" || \
+# if hard-linking doesn`t work, _then_ try copying
+cp -f "$target_with_descriptive_name" "$pathname_of_new_canary_file"
 
 if [ "$VERBOSITY" -gt 2 ]; then
   stderr_echo "--- INFO:   About to list the post-compilation executable [definitely new] ---" # changed verbiage from "new executable" in case of unlikely situations like {executable already existed at start, but was read-only and/or locked, so not overwritten}
